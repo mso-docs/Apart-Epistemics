@@ -8,7 +8,7 @@ The same file is copied into repos as a scrubber (lexsi_unlearn/scrub.py,
 apart_epistemics/scrub.py), so it must stay free of personal values.
 
 Placeholders (stable, so repeated redaction is idempotent):
-  <HOST_SPARK> <HOST_GPU> <HOST> <HOST_LOCAL> <TAILNET_HOST> <TAILNET> <SSH_TARGET>
+  <HOST_GPU2> <HOST_GPU> <HOST> <HOST_LOCAL> <TAILNET_HOST> <TAILNET> <SSH_TARGET>
   <USER> <HOME> <EMAIL> <IP> <PHONE> and, for traces, <REDACTED:NAME>.
 """
 from __future__ import annotations
@@ -32,7 +32,7 @@ GLOBAL_ALLOW_FILE = REDACTION_DIR / "allow.local"
 QUARANTINE_DIR = REDACTION_DIR / "quarantine"
 
 PLACEHOLDER = {
-    "HOST_SPARK": "<HOST_SPARK>",
+    "HOST_GPU2": "<HOST_GPU2>",
     "HOST_GPU": "<HOST_GPU>",
     "HOST": "<HOST>",
     "HOST_LOCAL": "<HOST_LOCAL>",
@@ -151,7 +151,7 @@ TS_NET_PLACEHOLDER_RE = re.compile(r"(?i)(xxx|example|your|tail1234|<|\{|\$|tail
 MDNS_RE = re.compile(r"(?<![\w.-])[A-Za-z0-9]+(?:-[A-Za-z0-9]+)+\.local(?![\w-])")  # hyphenated mDNS names only; never file stems like x.local
 SSH_TARGET_RE = re.compile(r"(?<![\w.+-])([A-Za-z0-9._+-]+)@(<(?:TAILNET_HOST|HOST[A-Z_]*)>)")
 
-PLACEHOLDER_TARGET_RE = re.compile(r"(?<![\w.+-])(<(?:HOST_SPARK|HOST_GPU|HOST|HOST_LOCAL)>)@(<(?:TAILNET_HOST|HOST[A-Z_]*)>)")
+PLACEHOLDER_TARGET_RE = re.compile(r"(?<![\w.+-])(<(?:HOST_GPU2|HOST_GPU|HOST|HOST_LOCAL)>)@(<(?:TAILNET_HOST|HOST[A-Z_]*)>)")
 CONTEXT_PREFIX = r"(?:(?<=/Users/)|(?<=/home/)|(?<=[\w.+-]@)|(?<=ssh )|(?<=scp )|(?<=-l )|(?<=-u )|(?<=user=)|(?<=USER=)|(?<=user: )|(?<=User )|(?<=host=)|(?<=HOST=)|(?<=Host ))"
 
 
@@ -169,7 +169,7 @@ def _safe_name_key(value: str) -> str:
 
 GENERIC_WORDS = {
     "media", "server", "host", "localhost", "local", "gpu", "root", "admin", "user", "home", "mac", "macbook", "ubuntu", "debian",
-    "pi", "box", "node", "main", "dev", "prod", "test", "spark", "git", "data", "work", "default", "ssh", "tailscale", "stream", "hub", "lab", "labs",
+    "pi", "box", "node", "main", "dev", "prod", "test", "git", "data", "work", "default", "ssh", "tailscale", "stream", "hub", "lab", "labs",
 }
 
 
@@ -322,8 +322,6 @@ def classify_name(name: str, is_self: bool = False, rules=None) -> str:
     for kind, rx in (rules if rules is not None else classify_rules()):
         if rx.search(name):
             return kind
-    if re.search(r"(?i)spark", name):
-        return "HOST_SPARK"
     if re.search(r"(?i)gpu", name):
         return "HOST_GPU"
     return "HOST_LOCAL" if is_self else "HOST"
@@ -401,10 +399,9 @@ def build_identities(*, repos=(), ssh_config: Path | None = None, manual: Path |
                 if not v or _looks_placeholder(v) or SECRET_KEY_RE.search(k):
                     continue
                 ku = k.upper()
-                is_spark = "SPARK" in ku
                 if re.search(r"(HOST|SSH|REMOTE|SERVER|ADDR)", ku) and "DIR" not in ku and "URL" not in ku and "PORT" not in ku:
                     user, host = _split_target(v)
-                    kind = "HOST_SPARK" if is_spark else ("HOST_GPU" if "REMOTE" in ku or "SERVER" in ku else "HOST")
+                    kind = "HOST_GPU" if "REMOTE" in ku or "SERVER" in ku else "HOST"
                     if host and not re.fullmatch(r"(?:localhost|127\.0\.0\.1|0\.0\.0\.0)", host, re.I):
                         add(kind, host)
                     if user:
@@ -625,7 +622,7 @@ class Engine:
             self._ctx.append((kind, re.compile(
                 r"(?:" + CONTEXT_PREFIX + r"(?:" + alt + r")(?![A-Za-z0-9_])|(?<![A-Za-z0-9_@/.~-])(?:" + alt + r")(?=@[A-Za-z0-9<]))", re.I)))
             self._needles[("c", kind)] = tuple(re.sub(r"\\(.)", r"\1", v).lower() for v in vals)
-        order = {"TAILNET": 0, "HOST_SPARK": 1, "HOST_GPU": 2, "HOST_LOCAL": 3, "HOST": 4, "USER": 5}
+        order = {"TAILNET": 0, "HOST_GPU2": 1, "HOST_GPU": 2, "HOST_LOCAL": 3, "HOST": 4, "USER": 5}
         self._bare.sort(key=lambda kr: order.get(kr[0], 9))
         self._ctx.sort(key=lambda kr: order.get(kr[0], 9))
 

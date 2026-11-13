@@ -1,5 +1,6 @@
 """Write-time scrub for run outputs. Synthetic values only; identities are injected."""
 import json
+import re
 import tempfile
 import unittest
 from pathlib import Path
@@ -39,6 +40,23 @@ class ScrubTests(unittest.TestCase):
         for leaked in (SECRET, "gpu-box-1", "svc-runner7"):
             self.assertNotIn(leaked, text)
         self.assertEqual(json.loads((self.tmp / "items.jsonl").read_text())["p"], 0.25)
+
+    def test_second_gpu_host_placeholder(self):
+        ids = [
+            scrub.Identity("HOST_GPU2", "bare", "remote-box-9"),
+            scrub.Identity("HOST_GPU", "bare", "gpu-box-1"),
+        ]
+        engine = scrub.Engine(ids, {}, scrub.Allow())
+        out = engine.scrub("user@remote-box-9 and gpu-box-1")
+        self.assertEqual(out, "user@<HOST_GPU2> and <HOST_GPU>")
+        self.assertIn("HOST_GPU2", scrub.PLACEHOLDER)
+        self.assertEqual(scrub.PLACEHOLDER["HOST_GPU2"], "<HOST_GPU2>")
+        self.assertEqual(
+            scrub.classify_name("remote-box-9", rules=[("HOST_GPU2", re.compile(r"remote-box", re.I))]),
+            "HOST_GPU2",
+        )
+        self.assertEqual(scrub.classify_name("gpu-box-1"), "HOST_GPU")
+        self.assertEqual(scrub.classify_name("other-host"), "HOST")
 
     def test_normal_content_untouched(self):
         row = {"id": "squad_v2:5ad39d53604f3c001a3fe8d1", "question": "Who won in 2015? Version 1.2.3 at 12:30", "p": 0.5}
