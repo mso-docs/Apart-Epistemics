@@ -20,6 +20,7 @@ def built():
     cfg = load_config(ROOT / "configs" / "synthetic.yaml")
     cfg["outputs"]["dir"] = str(tmp)
     cfg["metrics"]["bootstrap"] = 20
+    cfg["metrics"]["n_shuffles"] = 5
     make_synthetic_run(cfg, RUN, n_per_class=60)
     run_analyze(cfg, RUN)
     rdir = tmp / RUN
@@ -44,8 +45,14 @@ class ExportTest(unittest.TestCase):
         self.assertIn("appropriate_behavior", {e["metric"] for e in t["evaluations"]})
         self.assertTrue(all(0.0 <= e["value"] <= 1.0 for tr in traces for e in tr["evaluations"]))
         kinds = {a["id"].split(":", 1)[1].rsplit("-", 1)[0] for a in arts}
-        for k in ("probe-auroc-by-layer", "probe-accuracy-by-layer", "reliability", "coverage-accuracy", "abstention-pr", "false-abstention"):
+        for k in ("probe-auroc-by-layer", "probe-accuracy-by-layer", "reliability", "coverage-accuracy", "abstention-pr", "false-abstention",
+                  "source-label-crosstab", "shuffled-label", "length-by-class", "transfer-auroc"):
             self.assertTrue(any(i.startswith(k) for i in kinds) or any(a["id"].split(":", 1)[1].startswith(k) for a in arts), k)
+        # SQuAD is labeled primary on the layer-AUROC artifact; synthetic SelfAware is not confounded
+        auroc = next(a for a in arts if a["id"].endswith("probe-auroc-by-layer"))
+        names = [s["name"] for s in auroc["data"]["series"]]
+        self.assertTrue(any("squad_v2 (primary)" in n for n in names), names)
+        self.assertFalse(any("selfaware (confounded)" in n for n in names), names)
         self.assertTrue(all(a.get("synthetic") for a in arts))           # synthetic runs are always labeled
         self.assertTrue(all(t.get("synthetic") for t in traces))
 

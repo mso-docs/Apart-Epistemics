@@ -20,7 +20,7 @@ datasets:
     path: data/raw/selfaware/SelfAware.json
     n_per_class: 1000
 
-splits: {train: 0.6, val: 0.2, test: 0.2}   # deterministic; SQuAD split by passage, SelfAware by question id
+splits: {train: 0.6, val: 0.2, test: 0.2}   # deterministic, stratified by class; SQuAD still split by passage, SelfAware by question id
 
 behavior:
   abstain_option_pass: true              # also ask once with an explicit "UNANSWERABLE" option (hidden states come from the plain prompt)
@@ -40,6 +40,7 @@ metrics:
   ece_bins: 10
   conf_high: 0.8                         # "high verbalized confidence" for the gap rate
   bootstrap: 300
+  n_shuffles: 20                       # shuffled-label control; 0 skips it
 
 judge:
   backend: none                          # none | openrouter. openrouter needs APART_ALLOW_PAID_CALLS=1 and goes through the $30 guard

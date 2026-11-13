@@ -90,6 +90,20 @@ class DataTest(unittest.TestCase):
         self.assertEqual(sum(i.answerable for i in sub), 100)
         self.assertEqual(sum(not i.answerable for i in sub), 100)
 
+    def test_splits_are_stratified_by_class_for_singleton_groups(self):
+        items = [Item(id=f"sa:{i}", dataset="selfaware", question="q", answerable=i < 100,
+                      group=f"selfaware:{i}") for i in range(200)]
+        fr = {"train": 0.6, "val": 0.2, "test": 0.2}
+        assign_splits(items, 13, fr)
+        for flag in (True, False):
+            sub = [it for it in items if it.answerable is flag]
+            counts = {s: sum(it.split == s for it in sub) for s in ("train", "val", "test")}
+            self.assertEqual(counts, {"train": 60, "val": 20, "test": 20}, counts)
+        # leftover counts still sum and stay deterministic
+        again = [Item(id=i.id, dataset=i.dataset, question="q", answerable=i.answerable, group=i.group) for i in items]
+        assign_splits(again, 13, fr)
+        self.assertEqual([i.split for i in items], [i.split for i in again])
+
     def test_real_data_if_downloaded(self):
         p = ROOT / "data" / "raw" / "selfaware" / "SelfAware.json"
         if not p.exists():
@@ -136,8 +150,19 @@ class PipelineTest(unittest.TestCase):
         tmp = Path(tempfile.mkdtemp())
         cfg = tmp_cfg(tmp)
         cfg["metrics"]["bootstrap"] = 30
+        cfg["metrics"]["n_shuffles"] = 5
         make_synthetic_run(cfg, "SYNTH-t--00000000", n_per_class=80)
         out = run_analyze(cfg, "SYNTH-t--00000000")
+        self.assertEqual(out["meta"]["primary_probe_dataset"], "squad_v2")
+        self.assertIn("sanity", out)
+        self.assertIn("source_label_crosstab", out["sanity"])
+        self.assertIn("shuffled_label", out["sanity"])
+        self.assertIn("length_baseline", out["sanity"])
+        self.assertIn("transfer", out["sanity"])
+        # synthetic source is shared across classes: not a source alias
+        self.assertFalse(out["sanity"]["source_label_crosstab"]["selfaware"]["perfect_source_alias"])
+        self.assertNotIn("selfaware", out["meta"]["confounded_datasets"])
+        self.assertTrue((tmp / "SYNTH-t--00000000" / "analysis" / "sanity.json").exists())
         sq = out["datasets"]["squad_v2"]
         self.assertGreater(sq["probe_logistic"]["test_auroc"][sq["probe_logistic"]["best_layer"]], 0.85)
         self.assertGreaterEqual(sq["probe_logistic"]["best_layer"], 3)          # planted signal grows with depth

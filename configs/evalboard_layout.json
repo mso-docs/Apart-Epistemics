@@ -23,8 +23,8 @@
       ]}
     ]},
     {"id": "probes", "title": "Probes, calibration, abstention", "tabs": [
-      {"id": "views", "title": "Layer curves, reliability, coverage-accuracy, gap", "sections": [
-        {"id": "interp-views", "title": "Recorded artifacts (pick a view; each states how it was computed)", "component": "interp"}
+      {"id": "views", "title": "Layer curves, reliability, coverage-accuracy, gap, sanity checks", "sections": [
+        {"id": "interp-views", "title": "Recorded artifacts (SQuAD 2.0 is the primary probe result; SelfAware/pooled may be source-confounded; pick a view)", "component": "interp"}
       ]}
     ]}
   ],

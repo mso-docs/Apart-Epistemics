@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+import math
 import json
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -41,10 +42,66 @@ def _bucket(key: str, seed: int, fractions: dict[str, float]) -> str:
     return "test"
 
 
+def _quotas(n: int, fractions: dict[str, float]) -> dict[str, int]:
+    """Integer train/val/test counts that sum to n (largest-remainder, stable order)."""
+    names = ("train", "val", "test")
+    raw = {s: n * float(fractions[s]) for s in names}
+    base = {s: int(math.floor(raw[s])) for s in names}
+    leftover = n - sum(base.values())
+    order = sorted(names, key=lambda s: (-(raw[s] - base[s]), names.index(s)))
+    for i in range(leftover):
+        base[order[i]] += 1
+    return base
+
+
 def assign_splits(items: list[Item], seed: int, fractions: dict[str, float]) -> None:
-    """Deterministic split. SQuAD is split by passage (no passage shared across splits); SelfAware by question id."""
+    """Deterministic split, stratified by answerability class.
+
+    Items that share a group (a SQuAD passage) stay in the same split, so no passage is shared
+    across splits. SelfAware groups are per-question, so class quotas are exact. Mixed-label
+    groups (a passage with both answerable and unanswerable questions) are assigned as a unit;
+    class balance is then as close as grouping allows.
+    """
+    names = ("train", "val", "test")
+    groups: dict[str, list[Item]] = {}
     for it in items:
-        it.split = _bucket(it.group or it.id, seed, fractions)
+        groups.setdefault(it.group or it.id, []).append(it)
+
+    def flags_of(members: list[Item]) -> set[bool]:
+        return {bool(m.answerable) for m in members}
+
+    n_class = {True: sum(bool(it.answerable) for it in items),
+               False: sum(not it.answerable for it in items)}
+    quota = {flag: _quotas(n, fractions) for flag, n in n_class.items()}
+    filled = {flag: {s: 0 for s in names} for flag in (True, False)}
+    assigned: dict[str, str] = {}
+
+    def remaining(split: str, members: list[Item]) -> int:
+        return sum(quota[bool(it.answerable)][split] - filled[bool(it.answerable)][split] for it in members)
+
+    def place(gid: str) -> None:
+        members = groups[gid]
+        preferred = _bucket(gid, seed, fractions)
+        # Prefer the split with the most remaining class quota; ties go to the hash bucket, then name order.
+        split = max(names, key=lambda s: (remaining(s, members), 1 if s == preferred else 0, -names.index(s)))
+        assigned[gid] = split
+        for it in members:
+            filled[bool(it.answerable)][split] += 1
+
+    mixed, pure = [], {True: [], False: []}
+    for gid, members in groups.items():
+        fs = flags_of(members)
+        if len(fs) == 1:
+            pure[next(iter(fs))].append(gid)
+        else:
+            mixed.append(gid)
+    for gid in sorted(mixed, key=lambda g: _h(seed, "split", g)):
+        place(gid)
+    for flag in (True, False):
+        for gid in sorted(pure[flag], key=lambda g: _h(seed, "split", g)):
+            place(gid)
+    for it in items:
+        it.split = assigned[it.group or it.id]
 
 
 def balanced_subsample(items: list[Item], n_per_class: int, seed: int) -> list[Item]:

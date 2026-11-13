@@ -6,6 +6,9 @@ import numpy as np
 from .metrics import (abstention_stats, auroc, aurc, bootstrap_ci, ece, gap_rate, gating_curve, recognition_action_gap,
                       reliability_bins, selective_accuracy_at, youden_threshold, brier)
 from .probing import fit_layerwise, project_scores
+from .probing.sanity import (PRIMARY_DATASET, SELFAWARE_SOURCE_CONFOUND_NOTE, confound_flags,
+                             length_baselines, reporting_label, shuffled_label_control,
+                             source_label_crosstab, transfer_summary)
 from .runio import load_hidden, read_jsonl, run_dir, write_json
 
 SIGNALS = ("probe", "verbal_confidence", "mean_logprob", "neg_entropy", "consistency")
@@ -140,21 +143,93 @@ def run_analyze(cfg: dict, run_id: str) -> dict:
         if nm != "pooled":
             m = A["ds"] == nm
             ps_all[m] = ps[m]
-    for nm, o in results.items():
+    sanity = _run_sanity(rows, A, H, cfg, results, mains)
+    flags = sanity["confound_flags"]
+    n_layers = int(H.shape[1])
+    primary = PRIMARY_DATASET if PRIMARY_DATASET in results else (names[0] if names else None)
+    meta = {
+        "run_id": run_id, "n_items": len(rows), "n_layers_incl_embedding": n_layers, "hidden_dim": int(H.shape[2]),
+        "primary_probe_dataset": primary,
+        "primary_probe_scores": (
+            "SQuAD 2.0 logistic probe at its val-selected best layer is the primary result. "
+            "SelfAware and pooled are reported but are not primary when source aliases the label."
+        ),
+        "confounded_datasets": sorted(flags),
+        "confound_note": SELFAWARE_SOURCE_CONFOUND_NOTE if flags else None,
+    }
+    fmt = lambda v: "na" if v is None or (isinstance(v, float) and v != v) else f"{v:.3f}"  # noqa: E731
+    order = ([primary] if primary else []) + [n for n in results if n != primary]
+    for nm in order:
+        o = results[nm]
         pl = o["probe_logistic"]
         pa = pl["test_auroc"][pl["best_layer"]]
         vc = (o["signals"].get("verbal_confidence") or {}).get("auroc_answerability")
         rag = (o.get("gap") or {}).get("recognition_action", {}).get("gap")
-        fmt = lambda v: "na" if v is None or v != v else f"{v:.3f}"  # noqa: E731
-        print(f"headline {nm}: probe_auroc={fmt(pa)} best_layer={pl['best_layer']} verbal_auroc={fmt(vc)} "
-              f"ece_verbal={fmt(o['calibration']['verbal_confidence']['ece'])} recognition_action_gap={fmt(rag)}", flush=True)
-    n_layers = int(H.shape[1])
-    meta = {"run_id": run_id, "n_items": len(rows), "n_layers_incl_embedding": n_layers, "hidden_dim": int(H.shape[2]),
-            "primary_probe_scores": "per-dataset logistic probe at its val-selected best layer"}
-    write_json(rdir / "analysis" / "metrics.json", {"meta": meta, "datasets": results})
+        print(f"headline {reporting_label(nm, flags)}: probe_auroc={fmt(pa)} best_layer={pl['best_layer']} "
+              f"verbal_auroc={fmt(vc)} ece_verbal={fmt(o['calibration']['verbal_confidence']['ece'])} "
+              f"recognition_action_gap={fmt(rag)}", flush=True)
+    _print_sanity(sanity, results, flags, fmt)
+    payload = {"meta": meta, "datasets": results, "sanity": sanity}
+    write_json(rdir / "analysis" / "metrics.json", payload)
+    write_json(rdir / "analysis" / "sanity.json", sanity)
     write_json(rdir / "analysis" / "curves.json", curves)
     from .runio import append_jsonl
     pf = rdir / "analysis" / "probe_scores.jsonl"
     pf.write_text("")
     append_jsonl(pf, [{"id": r["id"], "probe_score": None if not np.isfinite(s) else float(s)} for r, s in zip(rows, ps_all)])
-    return {"meta": meta, "datasets": results}
+    return payload
+
+
+def _run_sanity(rows, A, H, cfg, results, mains) -> dict:
+    pc = cfg["probe"]
+    n_shuf = int(cfg.get("metrics", {}).get("n_shuffles", 20))
+    C, max_iter, seed = float(pc.get("C", 1.0)), int(pc.get("max_iter", 1000)), int(cfg["seed"])
+    crosstab = source_label_crosstab(rows)
+    flags = confound_flags(crosstab)
+    length = length_baselines(rows)
+    shuffled = {}
+    scopes = list(results.keys())
+    for nm in scopes:
+        m = np.ones(len(A["ds"]), bool) if nm == "pooled" else (A["ds"] == nm)
+        rec = shuffled_label_control(H[m], A["ans"][m].astype(int), A["split"][m],
+                                     n_shuffles=n_shuf, C=C, max_iter=max_iter, seed=seed)
+        pl = results[nm]["probe_logistic"]
+        rec["real_test_auroc_at_val_best"] = pl["test_auroc"][pl["best_layer"]]
+        rec["real_best_layer"] = pl["best_layer"]
+        shuffled[nm] = rec
+    transfer = transfer_summary(results)
+    for key, rec in transfer.items():
+        src = rec["source"]
+        if src in mains:
+            rec["source_best_layer"] = int(mains[src].best_layer)
+    return {
+        "source_label_crosstab": crosstab,
+        "shuffled_label": shuffled,
+        "length_baseline": length,
+        "transfer": transfer,
+        "confound_flags": flags,
+    }
+
+
+def _print_sanity(sanity, results, flags, fmt):
+    xt = sanity["source_label_crosstab"]
+    for ds, rec in xt.items():
+        alias = "perfect source/label alias" if rec.get("perfect_source_alias") else "no source/label alias"
+        print(f"sanity source-crosstab {reporting_label(ds, flags)}: sources={rec.get('n_sources')} "
+              f"overlap={rec.get('source_label_overlap')} {alias} "
+              f"source_feature_test_auroc={fmt(rec.get('source_feature_test_auroc'))}", flush=True)
+    for ds, rec in sanity["shuffled_label"].items():
+        s = rec.get("summary") or {}
+        print(f"sanity shuffled-label {reporting_label(ds, flags)}: n={s.get('n', 0)} "
+              f"null_test_auroc mean={fmt(s.get('mean'))} max={fmt(s.get('max'))} "
+              f"real={fmt(rec.get('real_test_auroc_at_val_best'))}", flush=True)
+    for ds, rec in sanity["length_baseline"].items():
+        logistic = rec.get("logistic") or {}
+        words = (logistic.get("question_words") or {}).get("test_auroc")
+        combo = (logistic.get("chars_words_prompt") or {}).get("test_auroc")
+        print(f"sanity length-baseline {reporting_label(ds, flags)}: "
+              f"words_logistic_test_auroc={fmt(words)} combo_test_auroc={fmt(combo)}", flush=True)
+    for key, rec in sanity["transfer"].items():
+        print(f"sanity transfer {rec['source']} -> {reporting_label(rec['target'], flags)}: "
+              f"at_source_best_layer={fmt(rec.get('at_source_best_layer'))} "
+              f"max_over_layers={fmt(rec.get('max_over_layers'))} at L={rec.get('argmax_layer')}", flush=True)
