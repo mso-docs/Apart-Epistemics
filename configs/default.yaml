@@ -1,0 +1,58 @@
+# Apart AI x Epistemics sprint: "When does a model know it should abstain?"
+project: apart-epistemics
+seed: 13
+
+model:
+  name: microsoft/Phi-3.5-mini-instruct
+  path: models/Phi-3.5-mini-instruct     # local weights dir on the model host; falls back to the hub id
+  quantization: 8bit                     # none | 8bit | 4bit. bf16 weights alone are ~7.6 GB: too tight for the 8 GB server
+  device: cuda
+  batch_size: 1                          # last-prompt-token hooks, per the plan's memory fallback
+  max_new_tokens: 32
+  max_prompt_tokens: 1024
+
+datasets:
+  squad_v2:                              # contextual unanswerability; validation split, balanced subsample
+    path: data/raw/squad_v2
+    split: dev
+    n_per_class: 600
+  selfaware:                             # inherent unanswerability; data file has 2338 answerable / 1031 unanswerable
+    path: data/raw/selfaware/SelfAware.json
+    n_per_class: 1000
+
+splits: {train: 0.6, val: 0.2, test: 0.2}   # deterministic; SQuAD split by passage, SelfAware by question id
+
+behavior:
+  abstain_option_pass: true              # also ask once with an explicit "UNANSWERABLE" option (hidden states come from the plain prompt)
+
+consistency:                             # sampling-consistency baseline: expensive, run on a subset
+  enabled: false
+  n_samples: 5
+  temperature: 0.7
+  subset_frac: 0.25
+
+probe:
+  type: logistic
+  C: 1.0
+  max_iter: 1000
+  mass_mean: true                        # robustness check
+metrics:
+  ece_bins: 10
+  conf_high: 0.8                         # "high verbalized confidence" for the gap rate
+  bootstrap: 300
+
+judge:
+  backend: none                          # none | openrouter. openrouter needs APART_ALLOW_PAID_CALLS=1 and goes through the $30 guard
+  model: ""                              # e.g. a small judge model id; only used when backend=openrouter
+  sample_frac: 0.15
+
+guard:
+  timezone: America/New_York
+  weekday_start_hour: 17                 # weekday runs may only start at/after 5 PM ET; weekends unrestricted
+
+evalboard:
+  project: apart-epistemics
+  url: http://127.0.0.1:8767
+
+outputs:
+  dir: outputs

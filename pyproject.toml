@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "apart-epistemics"
+version = "0.1.0"
+description = "When does a model know it should abstain? Layer-wise probes vs. verbalized confidence (Apart AI x Epistemics sprint)."
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.26", "scikit-learn>=1.4", "pyyaml>=6.0", "huggingface_hub>=0.25"]
+
+[project.optional-dependencies]
+model = ["torch", "transformers>=4.45", "accelerate>=0.34", "bitsandbytes>=0.43"]
+
+[project.scripts]
+apart = "apart_epistemics.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

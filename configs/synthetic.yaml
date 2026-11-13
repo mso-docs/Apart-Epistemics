@@ -1,0 +1,3 @@
+# For tests and the demo project ONLY: synthetic outputs, no model.
+extends: default.yaml
+outputs: {dir: outputs_synthetic}

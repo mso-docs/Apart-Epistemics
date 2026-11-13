@@ -1,0 +1,3 @@
+# Saturday full run: sampling consistency on a subset, abstain-option pass on.
+extends: default.yaml
+consistency: {enabled: true}

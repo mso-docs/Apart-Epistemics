@@ -1,0 +1,38 @@
+{
+  "_comment": "Apart epistemics Evalboard layout. Applied by scripts/setup_evalboard.py; ingest only merges the metric definitions (by id). Headline = appropriate_behavior: a right answer on an answerable item or an abstention on an unanswerable one. Normalized to [0,1], higher is better.",
+  "title": "Apart: When does a model know it should abstain?",
+  "theme": "system",
+  "components": ["overview", "scoreboard", "metrics", "traces", "interp"],
+  "auto_structure": false,
+  "brand": {"name": "Abstention probes", "tagline": "Internal signal vs expressed confidence", "badge": "Phi-3.5-mini", "logo": {"type": "text", "value": "AE"}},
+  "pages": [
+    {"id": "overview", "title": "Overview", "tabs": [
+      {"id": "summary", "title": "Summary", "sections": [
+        {"id": "run-health", "title": "Run health and scores", "component": "overview"},
+        {"id": "headline-metrics", "title": "Metrics", "component": "metrics"}
+      ]}
+    ]},
+    {"id": "answerability", "title": "Answerable vs unanswerable", "tabs": [
+      {"id": "by-group", "title": "By dataset and group", "sections": [
+        {"id": "group-scores", "title": "Scores per dataset × answerability (each is a run)", "component": "scoreboard"}
+      ]}
+    ]},
+    {"id": "questions", "title": "Per-question traces", "tabs": [
+      {"id": "all", "title": "All questions", "sections": [
+        {"id": "question-traces", "title": "Prompt, answer, confidence, probe score, gold, and scores", "component": "traces"}
+      ]}
+    ]},
+    {"id": "probes", "title": "Probes, calibration, abstention", "tabs": [
+      {"id": "views", "title": "Layer curves, reliability, coverage-accuracy, gap", "sections": [
+        {"id": "interp-views", "title": "Recorded artifacts (pick a view; each states how it was computed)", "component": "interp"}
+      ]}
+    ]}
+  ],
+  "metrics": [
+    {"id": "appropriate-behavior", "label": "Appropriate behavior", "source": "score", "key": "appropriate_behavior", "aggregation": "mean", "format": "percent", "visible": true, "primary": true},
+    {"id": "answer-correct", "label": "Answer correct (answerable only)", "source": "score", "key": "answer_correct", "aggregation": "mean", "format": "percent", "visible": true, "primary": false},
+    {"id": "calibration-quality", "label": "Calibration quality (1 - Brier)", "source": "score", "key": "calibration_quality", "aggregation": "mean", "format": "percent", "visible": true, "primary": false},
+    {"id": "probe-correct", "label": "Probe correct (test split)", "source": "score", "key": "probe_correct", "aggregation": "mean", "format": "percent", "visible": true, "primary": false},
+    {"id": "verbal-confidence", "label": "Mean verbalized confidence", "source": "trace", "key": "verbal_confidence", "aggregation": "mean", "format": "percent", "visible": true}
+  ]
+}

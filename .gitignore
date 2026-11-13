@@ -1,0 +1,43 @@
+# Secrets and local env
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+.DS_Store
+
+# Model weights, datasets, run outputs, logs (never in git; re-create with scripts/)
+models/
+data/raw/
+data/processed/
+outputs/
+logs/
+hf_cache/
+.cache/
+*.bin
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.gguf
+*.npz
+*.npy
+*.sqlite3
+*.db
+
+# Local identity list for the pre-release PII scan (real usernames / hostnames)
+.prepublish_identities
+# Local release staging
+release/
+outputs_synthetic/

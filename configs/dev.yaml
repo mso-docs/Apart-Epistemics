@@ -1,0 +1,7 @@
+# Small development slice (a few hundred items) for the first end-to-end pipeline check.
+extends: default.yaml
+datasets:
+  squad_v2: {n_per_class: 100}
+  selfaware: {n_per_class: 100}
+behavior: {abstain_option_pass: false}
+metrics: {bootstrap: 100}

@@ -1,0 +1,8 @@
+# Core (CPU-only parts: data, probes, metrics, tests, ingest)
+numpy>=1.26
+scikit-learn>=1.4
+pyyaml>=6.0
+huggingface_hub>=0.25
+
+# Model host only (8 GB GPU server): install with scripts/setup_remote.sh
+# torch (CUDA build), transformers, accelerate, bitsandbytes
