@@ -199,6 +199,7 @@ def build_artifacts(run_id: str, model_name: str, metrics: dict, curves: dict, r
                 "series": ser, "markers": [{"value": 0.8, "label": "high-confidence cut"}]}, provenance="derived", phase="gap",
               trace_ids=gap_ids[:5000], notes="Linked traces = gap items: probe says unanswerable, model committed with confidence ≥ 0.8.")
     _sanity_artifacts(A, metrics, rows)
+    _abstain_option_artifacts(A, metrics)
     return arts
 
 
@@ -314,6 +315,59 @@ def _sanity_artifacts(A, metrics, rows):
               notes="Chance is marked at (0.5, 0.5). Full per-layer transfer curves are on the probe AUROC-by-layer chart.")
 
 
+def _abstain_option_artifacts(A, metrics):
+    """One precision-recall scatter per dataset: explicit abstain option vs probe / verbal confidence."""
+    flags = ((metrics.get("sanity") or {}).get("confound_flags")) or {}
+    primary = (metrics.get("meta") or {}).get("primary_probe_dataset") or "squad_v2"
+
+    def tag(ds):
+        if ds == primary and ds not in flags:
+            return f"{ds} (primary)"
+        if ds in flags:
+            return f"{ds} (confounded)"
+        return ds
+
+    for ds, o in (metrics.get("datasets") or {}).items():
+        block = (o.get("abstain_option") or {}).get("test") or {}
+        cmp = block.get("comparison") or {}
+        if not cmp:
+            continue
+        pts, labels = [], []
+        for key, lab in (("abstain_option", "explicit abstain option"),
+                         ("probe", "probe @ val Youden"),
+                         ("verbal_confidence", "verbal conf @ val Youden")):
+            rec = cmp.get(key) or {}
+            prec, reca = rec.get("abstention_precision"), rec.get("abstention_recall")
+            if prec is None or reca is None:
+                continue
+            if not (np.isfinite(prec) and np.isfinite(reca)):
+                continue
+            pts.append([float(reca), float(prec)])
+            labels.append(lab)
+        if not pts:
+            continue
+        ao = cmp.get("abstain_option") or {}
+        pr = cmp.get("probe") or {}
+        vc = cmp.get("verbal_confidence") or {}
+        def fmt(rec, key):
+            v = rec.get(key)
+            return "na" if v is None or not np.isfinite(v) else f"{v:.3f}"
+        A(f"abstain-option-{ds}", "scatter",
+          f"Explicit abstain option vs probe vs verbal confidence: {tag(ds)} (test)", {
+              "method": "The abstain-option pass is a single hard decision (the model may reply UNANSWERABLE). "
+                        "The probe and verbal confidence are gated at their val-chosen Youden thresholds. "
+                        "All three are scored on the same test items. x = abstention recall, y = abstention precision.",
+              "x_label": "abstention recall", "y_label": "abstention precision",
+              "explained_variance": None,
+              "panels": [{"name": ds, "groups": [{"name": "operating points", "points": pts, "labels": labels}]}],
+          }, provenance="derived", phase="abstention",
+          notes=(f"Abstain-option AUROC={fmt(ao, 'auroc_answerability')} F1={fmt(ao, 'abstention_f1')} "
+                 f"decision_acc={fmt(ao, 'decision_accuracy')} rate={fmt(ao, 'abstain_rate')}. "
+                 f"Probe AUROC={fmt(pr, 'auroc_answerability')} F1={fmt(pr, 'abstention_f1')}. "
+                 f"Verbal AUROC={fmt(vc, 'auroc_answerability')} F1={fmt(vc, 'abstention_f1')}. "
+                 "Full numbers are under datasets.*.abstain_option in analysis/metrics.json."))
+
+
 def attach_interp_refs(traces: list[dict], arts: list[dict], run_id: str):
     by_ds = {}
     for a in arts:
@@ -325,8 +379,9 @@ def attach_interp_refs(traces: list[dict], arts: list[dict], run_id: str):
         refs = [{"artifact_id": f"{run_id}:probe-auroc-by-layer", "label": "Probe AUROC by layer"}] if any(a["id"].endswith("probe-auroc-by-layer") for a in arts) else []
         refs += [{"artifact_id": i, "label": i.split(":", 1)[1]} for i in ids if "probe-score-dist" in i or "gap-verbal" in i]
         refs += [{"artifact_id": a["id"], "label": a["id"].split(":", 1)[1]}
-                 for a in arts if any(k in a["id"] for k in ("source-label-crosstab", "shuffled-label", "length-by-class", "transfer-auroc"))
-                 and (a["id"].endswith(f"-{t['metadata']['dataset']}") or a["id"].endswith("transfer-auroc"))]
+                 for a in arts if any(k in a["id"] for k in ("source-label-crosstab", "shuffled-label", "length-by-class", "transfer-auroc", "abstain-option"))
+                 and (a["id"].endswith(f"-{t['metadata']['dataset']}") or a["id"].endswith("transfer-auroc")
+                      or a["id"].endswith(f"abstain-option-{t['metadata']['dataset']}"))]
         if refs:
             t["metadata"]["interp"] = refs
     return traces

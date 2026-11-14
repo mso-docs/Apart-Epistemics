@@ -2,6 +2,8 @@
 
 Apart Research **AI x Epistemics sprint** (Fri Nov 13 – Sun Nov 15, 2026; submission cutoff Sun 11:59 PM AoE = Mon Nov 16, 6:59 AM ET), Track 1: model epistemics & decision-making evals.
 
+All code, experiments and writing in this repository were produced during the sprint (Nov 13–15, 2026); there is no pre-sprint code.
+
 Question: does a small open-weights model (Phi-3.5-mini-instruct) internally encode that a question is **unanswerable** even when it answers confidently? We fit layer-wise linear probes on last-prompt-token hidden states and compare them with verbalized confidence, token log-probability / entropy, and sampling consistency, on SQuAD 2.0 (no evidence in the passage) and SelfAware (inherently unanswerable). Full plan, related work, risks and schedule: **[docs/PROPOSAL.md](docs/PROPOSAL.md)**.
 
 > **Status:** first 400-item dev run is in (`20261113T221506Z-dev--apart`, Phi-3.5-mini 8-bit). **The primary probe result is SQuAD 2.0** (contextual unanswerability). SelfAware and pooled probe AUROCs are reported with a source/label confound warning (see Data notes) and are not headline numbers.

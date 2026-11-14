@@ -8,8 +8,8 @@ from __future__ import annotations
 import numpy as np
 
 __all__ = ["auroc", "ece", "reliability_bins", "brier", "coverage_accuracy", "aurc", "selective_accuracy_at",
-           "abstention_stats", "gating_curve", "gap_rate", "recognition_action_gap", "youden_threshold", "bootstrap_ci",
-           "valid_pairs"]
+           "abstention_stats", "abstention_decision_metrics", "pr_f1", "gating_curve", "gap_rate",
+           "recognition_action_gap", "youden_threshold", "bootstrap_ci", "valid_pairs"]
 
 
 def valid_pairs(*arrays):
@@ -113,6 +113,40 @@ def abstention_stats(abstain, answerable, correct_if_answered) -> dict:
     return {"coverage": float(answered.mean()) if n else float("nan"), "accuracy_answered": acc,
             "abstention_precision": float(prec), "abstention_recall": float(rec), "false_abstention_rate": false_abst,
             "n": int(n)}
+
+
+def pr_f1(precision, recall) -> float:
+    """Harmonic mean of precision and recall. NaN if either is missing or both are zero."""
+    p, r = float(precision), float(recall)
+    if not (np.isfinite(p) and np.isfinite(r)) or p + r == 0:
+        return float("nan")
+    return float(2 * p * r / (p + r))
+
+
+def abstention_decision_metrics(abstain, answerable, correct_if_answered=None) -> dict:
+    """Hard abstain/answer decision vs should-abstain (unanswerable).
+
+    When `correct_if_answered` is given, also returns the coverage / accuracy_answered /
+    false_abstention_rate fields from `abstention_stats`. AUROC uses the binary score
+    (~abstain); for a hard decision this equals balanced accuracy.
+    """
+    a = np.asarray(abstain, bool)
+    ans = np.asarray(answerable, bool)
+    n = len(a)
+    if correct_if_answered is not None:
+        out = abstention_stats(a, ans, correct_if_answered)
+    else:
+        tp = int((a & ~ans).sum())
+        prec = tp / a.sum() if a.sum() else float("nan")
+        rec = tp / (~ans).sum() if (~ans).sum() else float("nan")
+        out = {"n": int(n), "abstention_precision": float(prec), "abstention_recall": float(rec)}
+    out["abstention_f1"] = pr_f1(out["abstention_precision"], out["abstention_recall"])
+    out["abstain_rate"] = float(a.mean()) if n else float("nan")
+    out["abstain_rate_on_unanswerable"] = float(a[~ans].mean()) if (~ans).any() else float("nan")
+    out["abstain_rate_on_answerable"] = float(a[ans].mean()) if ans.any() else float("nan")
+    out["decision_accuracy"] = float((a == ~ans).mean()) if n else float("nan")
+    out["auroc_answerability"] = auroc(ans.astype(float), (~a).astype(float))
+    return out
 
 
 def youden_threshold(y_true, score) -> float:

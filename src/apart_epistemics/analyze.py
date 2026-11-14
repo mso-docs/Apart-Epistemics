@@ -3,8 +3,9 @@ from __future__ import annotations
 
 import numpy as np
 
-from .metrics import (abstention_stats, auroc, aurc, bootstrap_ci, ece, gap_rate, gating_curve, recognition_action_gap,
-                      reliability_bins, selective_accuracy_at, youden_threshold, brier)
+from .metrics import (abstention_decision_metrics, abstention_stats, auroc, aurc, bootstrap_ci, ece, gap_rate,
+                      gating_curve, pr_f1, recognition_action_gap, reliability_bins, selective_accuracy_at,
+                      youden_threshold, brier)
 from .probing import fit_layerwise, project_scores
 from .probing.sanity import (PRIMARY_DATASET, SELFAWARE_SOURCE_CONFOUND_NOTE, confound_flags,
                              length_baselines, reporting_label, shuffled_label_control,
@@ -143,6 +144,7 @@ def run_analyze(cfg: dict, run_id: str) -> dict:
         if nm != "pooled":
             m = A["ds"] == nm
             ps_all[m] = ps[m]
+    attach_abstain_option(results, rows)
     sanity = _run_sanity(rows, A, H, cfg, results, mains)
     flags = sanity["confound_flags"]
     n_layers = int(H.shape[1])
@@ -168,6 +170,13 @@ def run_analyze(cfg: dict, run_id: str) -> dict:
         print(f"headline {reporting_label(nm, flags)}: probe_auroc={fmt(pa)} best_layer={pl['best_layer']} "
               f"verbal_auroc={fmt(vc)} ece_verbal={fmt(o['calibration']['verbal_confidence']['ece'])} "
               f"recognition_action_gap={fmt(rag)}", flush=True)
+        ao = (o.get("abstain_option") or {}).get("test") or {}
+        if ao:
+            print(f"abstain-option {reporting_label(nm, flags)}: "
+                  f"rate={fmt(ao.get('abstain_rate'))} prec={fmt(ao.get('abstention_precision'))} "
+                  f"rec={fmt(ao.get('abstention_recall'))} f1={fmt(ao.get('abstention_f1'))} "
+                  f"decision_acc={fmt(ao.get('decision_accuracy'))} auroc={fmt(ao.get('auroc_answerability'))}",
+                  flush=True)
     _print_sanity(sanity, results, flags, fmt)
     payload = {"meta": meta, "datasets": results, "sanity": sanity}
     write_json(rdir / "analysis" / "metrics.json", payload)
@@ -178,6 +187,90 @@ def run_analyze(cfg: dict, run_id: str) -> dict:
     pf.write_text("")
     append_jsonl(pf, [{"id": r["id"], "probe_score": None if not np.isfinite(s) else float(s)} for r, s in zip(rows, ps_all)])
     return payload
+
+
+def _item_from_row(row):
+    from .data.loaders import Item
+    keys = Item.__dataclass_fields__.keys()
+    return Item(**{k: row[k] for k in keys if k in row})
+
+
+def _option_scope_metrics(rows) -> dict | None:
+    """Rescore saved abstain-option responses for one scope. None if the pass was not run."""
+    usable = [r for r in rows if r.get("abstain_option_response") is not None]
+    if not usable:
+        return None
+    from .scoring import score_answer
+    abst, ans, option_correct, option_right, plain_right = [], [], [], [], []
+    n_mismatch = 0
+    for r in usable:
+        sc = score_answer(_item_from_row(r), r["abstain_option_response"])
+        saved = r.get("abstained_when_allowed")
+        if saved is not None and bool(saved) != bool(sc["abstained"]):
+            n_mismatch += 1
+        abst.append(bool(sc["abstained"]))
+        ans.append(bool(r["answerable"]))
+        option_correct.append(bool(sc["correct"]))
+        option_right.append(bool(sc["correct"]) and bool(r["answerable"]) and not sc["abstained"])
+        plain_right.append(bool(r.get("correct")) and bool(r["answerable"]))
+    abst = np.array(abst, bool)
+    ans = np.array(ans, bool)
+    option_correct = np.array(option_correct, bool)
+    option_right = np.array(option_right, bool)
+    plain_right = np.array(plain_right, bool)
+    out = abstention_decision_metrics(abst, ans, option_right)
+    out["appropriate_behavior"] = float(option_correct.mean()) if len(option_correct) else float("nan")
+    out["n_option_responses"] = int(len(usable))
+    out["n_flag_mismatch"] = int(n_mismatch)
+    # comparable false-abstention: would the plain (no-option) committed answer have been right?
+    plain = abstention_decision_metrics(abst, ans, plain_right)
+    out["false_abstention_rate_using_plain_answer"] = plain.get("false_abstention_rate")
+    out["accuracy_answered_using_plain_answer"] = plain.get("accuracy_answered")
+    return out
+
+
+def _option_comparison(ds_result: dict, option_test: dict) -> dict:
+    """Side-by-side test-split metrics for the option pass vs probe / verbal confidence on the same items."""
+    def pack_option(rec):
+        return {k: rec.get(k) for k in (
+            "auroc_answerability", "abstention_precision", "abstention_recall", "abstention_f1",
+            "decision_accuracy", "coverage", "accuracy_answered", "false_abstention_rate",
+            "appropriate_behavior", "abstain_rate", "n")}
+
+    out = {"abstain_option": pack_option(option_test)}
+    for s in ("probe", "verbal_confidence"):
+        sig = (ds_result.get("signals") or {}).get(s) or {}
+        gate = sig.get("gating_at_val_threshold") or {}
+        prec, rec = gate.get("abstention_precision"), gate.get("abstention_recall")
+        f1 = pr_f1(prec, rec) if prec is not None and rec is not None else float("nan")
+        out[s] = {"auroc_answerability": sig.get("auroc_answerability"), "val_threshold": sig.get("val_threshold"),
+                  "abstention_precision": prec, "abstention_recall": rec, "abstention_f1": f1,
+                  "coverage": gate.get("coverage"), "accuracy_answered": gate.get("accuracy_answered"),
+                  "false_abstention_rate": gate.get("false_abstention_rate"), "n": gate.get("n")}
+    return out
+
+
+def attach_abstain_option(results: dict, rows: list[dict]) -> None:
+    """Mutate `results[ds]['abstain_option']` from saved option-pass responses. No-op if the pass was not run."""
+    if not any(r.get("abstain_option_response") is not None for r in rows):
+        return
+    by: dict[str, list] = {}
+    for r in rows:
+        by.setdefault(r["dataset"], []).append(r)
+    for nm in list(results):
+        scope = rows if nm == "pooled" else by.get(nm, [])
+        if not scope:
+            continue
+        block = {}
+        for split_name, subset in (("test", [r for r in scope if r.get("split") == "test"]), ("all", scope)):
+            rec = _option_scope_metrics(subset)
+            if rec is None:
+                continue
+            if split_name == "test":
+                rec["comparison"] = _option_comparison(results.get(nm) or {}, rec)
+            block[split_name] = rec
+        if block:
+            results[nm]["abstain_option"] = block
 
 
 def _run_sanity(rows, A, H, cfg, results, mains) -> dict:
