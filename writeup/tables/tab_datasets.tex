@@ -1,0 +1,14 @@
+\begin{table}[t]
+\centering\scriptsize
+\caption{Answerability AUROC by dataset on each test split. Only SQuAD~2.0 is a primary result. In SelfAware the unanswerable items all have source \texttt{SelfAware} and the answerable items all come from other sources, so a source-only feature reaches 1.000; the pooled set inherits part of this alias (source-only 0.930, not 1.000, because the SQuAD half shares one source across both classes). ``Shuffled'' gives the mean / maximum test AUROC over 20 shuffled-label runs. Question word count is a one-feature logistic baseline. The source-only value for SQuAD is not defined (one source).}
+\label{tab:datasets}
+\resizebox{\linewidth}{!}{\begin{tabular}{@{}lcccccccccc@{}}
+\toprule
+Dataset & Test n & Layer & Val AUROC & Probe test AUROC [95\% CI] & Verbal & Consist. & Words & Shuffled & Source-only \\
+\midrule
+SQuAD 2.0 (primary) & 240 & L18 & 0.918 & 0.906 [0.867, 0.948] & 0.621 & 0.665 & 0.569 & 0.492 / 0.568 & -- \\
+SelfAware (confounded) & 400 & L15 & 0.994 & 0.993 [0.985, 0.998] & 0.700 & 0.706 & 0.629 & 0.488 / 0.533 & 1.000 \\
+Pooled (confounded) & 640 & L18 & 0.968 & 0.959 [0.944, 0.972] & 0.650 & 0.683 & 0.555 & 0.500 / 0.554 & 0.930 \\
+\bottomrule
+\end{tabular}}
+\end{table}

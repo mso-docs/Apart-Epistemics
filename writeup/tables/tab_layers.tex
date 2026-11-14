@@ -1,0 +1,28 @@
+\begin{table}[p]
+\centering\scriptsize
+\caption{Layer-wise probe AUROC on SQuAD~2.0 (answerable = positive). Layer 0 is the embedding output, where the last-token input is identical for every item, so 0.500 is expected. Validation n=240, test n=240. The layer chosen on validation is marked with an asterisk for each probe type; the layer with the highest test AUROC is marked with a dagger.}
+\label{tab:layers}
+\resizebox{\linewidth}{!}{\begin{tabular}{@{}rcccc@{\hspace{2em}}rcccc@{}}
+\toprule
+Layer & Log. val & Log. test & MM val & MM test & Layer & Log. val & Log. test & MM val & MM test \\
+\midrule
+0 & 0.500 & 0.500 & 0.500 & 0.500 & 17 & 0.887 & 0.918$^\dagger$ & 0.910 & 0.928$^\dagger$ \\
+1 & 0.521 & 0.606 & 0.476 & 0.448 & 18 & 0.918$^*$ & 0.906 & 0.912$^*$ & 0.927 \\
+2 & 0.513 & 0.468 & 0.496 & 0.495 & 19 & 0.897 & 0.899 & 0.910 & 0.926 \\
+3 & 0.531 & 0.524 & 0.488 & 0.495 & 20 & 0.894 & 0.880 & 0.895 & 0.909 \\
+4 & 0.547 & 0.557 & 0.489 & 0.502 & 21 & 0.899 & 0.886 & 0.880 & 0.898 \\
+5 & 0.569 & 0.519 & 0.494 & 0.520 & 22 & 0.879 & 0.880 & 0.862 & 0.885 \\
+6 & 0.565 & 0.559 & 0.505 & 0.509 & 23 & 0.868 & 0.861 & 0.853 & 0.878 \\
+7 & 0.571 & 0.605 & 0.518 & 0.516 & 24 & 0.862 & 0.844 & 0.853 & 0.874 \\
+8 & 0.582 & 0.631 & 0.523 & 0.497 & 25 & 0.858 & 0.842 & 0.843 & 0.869 \\
+9 & 0.590 & 0.614 & 0.493 & 0.492 & 26 & 0.842 & 0.815 & 0.842 & 0.860 \\
+10 & 0.618 & 0.666 & 0.472 & 0.517 & 27 & 0.834 & 0.814 & 0.838 & 0.861 \\
+11 & 0.663 & 0.668 & 0.497 & 0.570 & 28 & 0.849 & 0.808 & 0.832 & 0.855 \\
+12 & 0.693 & 0.729 & 0.543 & 0.610 & 29 & 0.842 & 0.807 & 0.826 & 0.860 \\
+13 & 0.742 & 0.738 & 0.602 & 0.662 & 30 & 0.846 & 0.825 & 0.829 & 0.866 \\
+14 & 0.777 & 0.773 & 0.640 & 0.695 & 31 & 0.846 & 0.829 & 0.832 & 0.870 \\
+15 & 0.881 & 0.865 & 0.828 & 0.851 & 32 & 0.848 & 0.832 & 0.819 & 0.847 \\
+16 & 0.877 & 0.895 & 0.882 & 0.901 & &&&& \\
+\bottomrule
+\end{tabular}}
+\end{table}

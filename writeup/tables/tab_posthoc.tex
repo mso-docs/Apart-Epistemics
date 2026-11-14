@@ -1,0 +1,19 @@
+\begin{table}[t]
+\centering\small
+\caption{Post hoc 95\% percentile-bootstrap intervals (300 resamples over the 240 SQuAD test items, seed 13) for quantities whose intervals the run did not store. The probe threshold is held fixed at the validation-chosen value. Computed by a separate script after the run; point estimates match \texttt{metrics.json} exactly. Resampling is over items and ignores clustering by passage, so intervals may be slightly too narrow.}
+\label{tab:posthoc}
+\begin{tabular}{@{}lcc@{}}
+\toprule
+Quantity & Point & 95\% CI \\
+\midrule
+Recognition (probe balanced accuracy) & 0.821 & [0.764, 0.865] \\
+Action, plain prompt & 0.525 & [0.504, 0.547] \\
+Recognition--action gap, plain prompt & 0.296 & [0.240, 0.344] \\
+Recognition minus action with abstain option & 0.246 & [0.189, 0.292] \\
+Gap rate (share of all items) & 0.467 & [0.410, 0.529] \\
+Error rate among gap items & 0.821 & [0.747, 0.888] \\
+Share of probe-flagged items that are gap items & 0.882 & [0.824, 0.934] \\
+Abstain-option recall & 0.150 & [0.091, 0.208] \\
+\bottomrule
+\end{tabular}
+\end{table}

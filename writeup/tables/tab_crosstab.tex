@@ -1,0 +1,18 @@
+\begin{table}[t]
+\centering\small
+\caption{Source by label counts for the 2{,}000 SelfAware items in this run (1{,}000 per class, all splits). The only source with unanswerable items has no answerable items, which is why a source-only classifier is perfect on the test split.}
+\label{tab:crosstab}
+\begin{tabular}{@{}lcc@{}}
+\toprule
+Source & Answerable & Unanswerable \\
+\midrule
+\texttt{SelfAware} & 0 & 1000 \\
+\texttt{hotpot\_dev} & 6 & 0 \\
+\texttt{hotpot\_train} & 64 & 0 \\
+\texttt{squadqa\_dev} & 71 & 0 \\
+\texttt{squadqa\_train} & 551 & 0 \\
+\texttt{triviaqa\_dev} & 4 & 0 \\
+\texttt{triviaqa\_train} & 304 & 0 \\
+\bottomrule
+\end{tabular}
+\end{table}

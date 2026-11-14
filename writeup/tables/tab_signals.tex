@@ -1,0 +1,20 @@
+\begin{table}[t]
+\centering\small
+\caption{Answerability signals on the SQuAD~2.0 test split (n=240; 120 answerable, 120 unanswerable). AUROC columns use the raw signal; the 95\% interval is a percentile bootstrap over test items (300 resamples). The right-hand block thresholds each signal at the cut that maximises Youden's J on the validation split, then scores flagging an item as unanswerable (precision, recall and F1 are for the unanswerable class; coverage is the share of items still answered). The explicit abstain option is a single hard decision, so its AUROC equals its balanced accuracy and it has no threshold. Sampling consistency exists for only 51 test items (23 answerable), so its AUROC is not comparable with the others and its thresholded columns are omitted (items without a score would be silently counted as answered).}
+\label{tab:signals}
+\resizebox{\linewidth}{!}{\begin{tabular}{@{}lccccccc@{}}
+\toprule
+Signal & AUROC (answerability) & 95\% CI & AUROC (correctness) & Coverage & Prec. & Recall & F1 \\
+\midrule
+Linear probe, L18 & 0.906 & [0.867, 0.948] & 0.660 & 0.471 & 0.803 & 0.850 & 0.826 \\
+Verbal confidence & 0.621 & [0.558, 0.681] & 0.799 & 0.879 & 0.828 & 0.200 & 0.322 \\
+Mean token log-prob & 0.667 & [0.593, 0.731] & 0.869 & 0.583 & 0.660 & 0.550 & 0.600 \\
+Negative entropy & 0.688 & [0.614, 0.751] & 0.894 & 0.571 & 0.670 & 0.575 & 0.619 \\
+Sampling consistency (n=51) & 0.665 & [0.531, 0.787] & 0.977$^{\dagger}$ & -- & -- & -- & -- \\
+Explicit abstain option & 0.575 & -- & -- & 0.925 & 1.000 & 0.150 & 0.261 \\
+Question word count (logistic) & 0.569 & -- & -- & -- & -- & -- & -- \\
+Shuffled-label probe (mean of 20) & 0.492 & -- & -- & -- & -- & -- & -- \\
+\bottomrule
+\end{tabular}}
+\par\vspace{2pt}{\footnotesize $^\dagger$ Computed on the 23 answerable test items that have a consistency score, only one of which was answered wrongly, so this value rests on 22 pairs and is not reliable. The correctness AUROC of the other signals uses the 120 answerable test items, 12 of which were answered wrongly.}
+\end{table}

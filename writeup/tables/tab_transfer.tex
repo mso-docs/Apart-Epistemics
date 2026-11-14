@@ -1,0 +1,15 @@
+\begin{table}[t]
+\centering\small
+\caption{Cross-dataset transfer of the logistic probe, scored by AUROC on the target test split. ``Reported'' uses the source dataset's own validation-selected layer. ``Maximum over layers'' picks the best of 33 layers on the target test split, so it is an optimistic upper bound and should not be quoted as performance. Pooled targets contain the confounded SelfAware half.}
+\label{tab:transfer}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+Transfer & Source layer & Reported & Max over layers & Layer of max \\
+\midrule
+SQuAD $\to$ SelfAware & L18 & 0.671 & 0.728 & L10 \\
+SelfAware $\to$ SQuAD & L15 & 0.580 & 0.788 & L19 \\
+SQuAD $\to$ pooled & L18 & 0.782 & 0.782 & L18 \\
+SelfAware $\to$ pooled & L15 & 0.850 & 0.891 & L20 \\
+\bottomrule
+\end{tabular}
+\end{table}
