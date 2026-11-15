@@ -6,7 +6,7 @@ All code, experiments and writing in this repository were produced during the sp
 
 Question: does a small open-weights model (Phi-3.5-mini-instruct) internally encode that a question is **unanswerable** even when it answers confidently? We fit layer-wise linear probes on last-prompt-token hidden states and compare them with verbalized confidence, token log-probability / entropy, and sampling consistency, on SQuAD 2.0 (no evidence in the passage) and SelfAware (inherently unanswerable). Full plan, related work, risks and schedule: **[docs/PROPOSAL.md](docs/PROPOSAL.md)**.
 
-> **Status:** first 400-item dev run is in (`20261113T221506Z-dev--apart`, Phi-3.5-mini 8-bit). **The primary probe result is SQuAD 2.0** (contextual unanswerability). SelfAware and pooled probe AUROCs are reported with a source/label confound warning (see Data notes) and are not headline numbers.
+> **Status:** The full run `20261114T041458Z-full--apart` is complete (3,200/3,200 items, Phi-3.5-mini 8-bit). The write-up is in `writeup/main.tex` / `writeup/main.pdf`. **The primary probe result is SQuAD 2.0** (contextual unanswerability): probe AUROC 0.906 at layer 18. SelfAware and pooled probe AUROCs are reported with a source/label confound warning (see Data notes) and are not headline numbers.
 > **Version control:** weekday commits and pushes are blocked 8 AM–6 PM ET by a global guard. Do not bypass it.
 
 ## Layout
