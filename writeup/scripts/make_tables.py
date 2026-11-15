@@ -12,7 +12,7 @@ sq = M["datasets"]["squad_v2"]; sg = sq["signals"]
 # ---- Table 1: signals on SQuAD test
 L.append(r"""\begin{table}[t]
 \centering\small
-\caption{Answerability signals on the SQuAD~2.0 test split (n=240; 120 answerable, 120 unanswerable). AUROC columns use the raw signal; the 95\% interval is a percentile bootstrap over test items (300 resamples). The right-hand block thresholds each signal at the cut that maximises Youden's J on the validation split, then scores flagging an item as unanswerable (precision, recall and F1 are for the unanswerable class; coverage is the share of items still answered). The explicit abstain option is a single hard decision, so its AUROC equals its balanced accuracy and it has no threshold. Sampling consistency exists for only 51 test items (23 answerable), so its AUROC is not comparable with the others and its thresholded columns are omitted (items without a score would be silently counted as answered).}
+\caption{Answerability signals on the SQuAD~2.0 test split (n=240; 120 answerable, 120 unanswerable). AUROC columns use the raw signal; the 95\% interval is a percentile bootstrap over test items (300 resamples). The right-hand block thresholds each signal at the cut that maximizes Youden's J on the validation split, then scores flagging an item as unanswerable (precision, recall and F1 are for the unanswerable class; coverage is the share of items still answered). The explicit abstain option is a single hard decision, so its AUROC equals its balanced accuracy and it has no threshold. Sampling consistency exists for only 51 test items (23 answerable), so its AUROC is not comparable with the others and its thresholded columns are omitted (items without a score would be silently counted as answered).}
 \label{tab:signals}
 \resizebox{\linewidth}{!}{\begin{tabular}{@{}lccccccc@{}}
 \toprule
@@ -37,7 +37,7 @@ L.append(r"""\bottomrule
 """)
 # ---- Table: per-layer AUROC (appendix)
 pl, pm = sq["probe_logistic"], sq["probe_massmean"]
-L.append(r"""\begin{table}[p]
+L.append(r"""\begin{table}[H]
 \centering\scriptsize
 \caption{Layer-wise probe AUROC on SQuAD~2.0 (answerable = positive). Layer 0 is the embedding output, where the last-token input is identical for every item, so 0.500 is expected. Validation n=240, test n=240. The layer chosen on validation is marked with an asterisk for each probe type; the layer with the highest test AUROC is marked with a dagger.}
 \label{tab:layers}
@@ -68,7 +68,7 @@ def ds_row(nm, lab):
     ln = S["length_baseline"][nm]["logistic"]["question_words"]["test_auroc"]
     return (f"{lab} & {o['n_by_split']['test']} & L{pl_['best_layer']} & {f3(pl_['val_auroc'][pl_['best_layer']])} & {f3(p['auroc_answerability'])} [{f3(p['auroc_answerability_ci95'][0])}, {f3(p['auroc_answerability_ci95'][1])}] "
             f"& {f3(v['auroc_answerability'])} & {f3(c['auroc_answerability'])} & {f3(ln)} & {f3(shn['mean'])} / {f3(shn['max'])} & {f3(xs)} \\\\")
-L.append(r"""\begin{table}[t]
+L.append(r"""\begin{table}[H]
 \centering\scriptsize
 \caption{Answerability AUROC by dataset on each test split. Only SQuAD~2.0 is a primary result. In SelfAware the unanswerable items all have source \texttt{SelfAware} and the answerable items all come from other sources, so a source-only feature reaches 1.000; the pooled set inherits part of this alias (source-only 0.930, not 1.000, because the SQuAD half shares one source across both classes). ``Shuffled'' gives the mean / maximum test AUROC over 20 shuffled-label runs. Question word count is a one-feature logistic baseline. The source-only value for SQuAD is not defined (one source).}
 \label{tab:datasets}
@@ -81,14 +81,14 @@ L.append(r"""\bottomrule
 \end{tabular}}
 \end{table}
 """)
-# ---- Table: gap + behaviour by dataset (appendix)
+# ---- Table: gap + behavior by dataset (appendix)
 def beh(nm, lab):
     o = M["datasets"][nm]; g = o["gap"]; ra = g["recognition_action"]; b = o["behavior"]; ao_ = o["abstain_option"]["test"]; cal = o["calibration"]["verbal_confidence"]
     return (f"{lab} & {f3(b['answer_accuracy_on_answerable'])} & {f3(b['abstention_rate_on_unanswerable'])} & {f3(ao_['abstain_rate_on_unanswerable'])} & {f3(ao_['abstain_rate_on_answerable'])} & {f3(ao_['abstention_precision'])} & {f3(ao_['abstention_recall'])} & {f3(ao_['abstention_f1'])} "
             f"& {f3(g['gap_rate'])} ({g['n_gap']}) & {f3(g['error_rate_in_gap'])} & {f3(ra['recognition'])} & {f3(ra['action'])} & {f3(ra['gap'])} & {f3(cal['mean_conf'])} & {f3(cal['ece'])} \\\\")
-L.append(r"""\begin{table}[t]
+L.append(r"""\begin{table}[H]
 \centering\tiny
-\caption{Behaviour and gap measures on each test split. ``Acc.'' is accuracy on answerable items (SQuAD: exact match or token-F1 $\geq$ 0.5; SelfAware: normalised string containment, which misses paraphrases). ``Abst.\ plain'' and ``Abst.\ option'' are abstention rates on unanswerable items without and with the explicit option; ``Opt.\ ans.'' is the option's abstention rate on answerable items. Gap rate is the share of all test items (count in parentheses) where the probe says unanswerable, the model commits, and its verbal confidence is at least 0.8; ``Err.\ in gap'' is the error rate among those items. Recognition and action are balanced accuracies defined in Section~\ref{sec:metrics}. ECE uses ten equal-width bins and counts an abstention on an unanswerable item as correct.}
+\caption{Behavior and gap measures on each test split. ``Acc.'' is accuracy on answerable items (SQuAD: exact match or token-F1 $\geq$ 0.5; SelfAware: normalized string containment, which misses paraphrases). ``Abst.\ plain'' and ``Abst.\ option'' are abstention rates on unanswerable items without and with the explicit option; ``Opt.\ ans.'' is the option's abstention rate on answerable items. Gap rate is the share of all test items (count in parentheses) where the probe says unanswerable, the model commits, and its verbal confidence is at least 0.8; ``Err.\ in gap'' is the error rate among those items. Recognition and action are balanced accuracies defined in Section~\ref{sec:metrics}. ECE uses ten equal-width bins and counts an abstention on an unanswerable item as correct.}
 \label{tab:behaviour}
 \resizebox{\linewidth}{!}{\begin{tabular}{@{}lccccccccccccccc@{}}
 \toprule
@@ -101,7 +101,7 @@ L.append(r"""\bottomrule
 """)
 # ---- Table: transfer
 T = S["transfer"]
-L.append(r"""\begin{table}[t]
+L.append(r"""\begin{table}[H]
 \centering\small
 \caption{Cross-dataset transfer of the logistic probe, scored by AUROC on the target test split. ``Reported'' uses the source dataset's own validation-selected layer. ``Maximum over layers'' picks the best of 33 layers on the target test split, so it is an optimistic upper bound and should not be quoted as performance. Pooled targets contain the confounded SelfAware half.}
 \label{tab:transfer}
@@ -118,7 +118,7 @@ L.append(r"""\bottomrule
 # ---- Table: post hoc bootstrap
 def pb(k, lab, pct=False):
     d = PB[k]; return f"{lab} & {d['point']:.3f} & [{d['lo']:.3f}, {d['hi']:.3f}] \\\\"
-L.append(r"""\begin{table}[t]
+L.append(r"""\begin{table}[H]
 \centering\small
 \caption{Post hoc 95\% percentile-bootstrap intervals (300 resamples over the 240 SQuAD test items, seed 13) for quantities whose intervals the run did not store. The probe threshold is held fixed at the validation-chosen value. Computed by a separate script after the run; point estimates match \texttt{metrics.json} exactly. Resampling is over items and ignores clustering by passage, so intervals may be slightly too narrow.}
 \label{tab:posthoc}
@@ -134,7 +134,7 @@ L.append(r"""\bottomrule
 """)
 # ---- Table: SelfAware crosstab
 ct = S["source_label_crosstab"]["selfaware"]["counts"]
-L.append(r"""\begin{table}[t]
+L.append(r"""\begin{table}[H]
 \centering\small
 \caption{Source by label counts for the 2{,}000 SelfAware items in this run (1{,}000 per class, all splits). The only source with unanswerable items has no answerable items, which is why a source-only classifier is perfect on the test split.}
 \label{tab:crosstab}

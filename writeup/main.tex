@@ -9,6 +9,7 @@
 \usepackage{graphicx,booktabs,array,tabularx,float,enumitem,xcolor,amsmath,caption}
 \usepackage[numbers,sort&compress]{natbib}
 \usepackage[hidelinks]{hyperref}
+\usepackage[section]{placeins}
 \usepackage{url}
 \setlength{\parindent}{1.2em}
 \setlength{\parskip}{0.2em}
@@ -19,7 +20,7 @@
 \newcommand{\code}[1]{\texttt{#1}}
 
 \title{\vspace{-1.2em}A Linear Answerability Signal That the Model Does Not Act On:\\Probes, Verbal Confidence and an Abstain Option in Phi-3.5-mini\thanks{Research conducted at the AI x Epistemics Research Sprint, November 2026.}}
-\author{Mackenzie O'Brien\\ Mac Labs AI\\[2pt] \small With Apart Research}
+\author{Mackenzie O'Brien\\ Mac Labs AI}
 \date{}
 
 \begin{document}
@@ -28,7 +29,7 @@
 
 \begin{abstract}
 \noindent
-We ask whether Phi-3.5-mini-instruct (3.8B parameters, 8-bit) carries a linearly readable signal for whether a question is answerable, and whether its stated confidence or abstention behaviour reflects that signal. On SQuAD 2.0 (1,200 balanced questions, passage-disjoint 60/20/20 splits, test n=240), a logistic probe on the last prompt token reaches an area under the ROC curve (AUROC) of 0.906 (95\% confidence interval, CI, 0.867--0.948) at layer 18, chosen on validation data. Verbalized confidence reaches 0.621, token-level and sampling signals 0.665--0.688, question length 0.569, and probes trained on shuffled labels 0.492. The behavioural counterpart is weak: the model abstains on 5\% of unanswerable test items, and an explicit UNANSWERABLE option raises this to 15\% with precision 1.0 (18 of 18). On 46.7\% of all test items the probe says unanswerable while the model commits with confidence at least 0.8, and those items are wrong 82.1\% of the time, against 52.5\% overall. SelfAware gives a probe AUROC of 0.993, but a source-only feature reaches 1.000, so we report it as a confound; transfer between the two datasets is weak (0.58 and 0.67). We claim a linear signal that predicts answerability within SQuAD under length and shuffle controls, from one model, one run and one prompt. We do not claim that the model knows it does not know.
+We ask whether Phi-3.5-mini-instruct (3.8B parameters, 8-bit) carries a linearly readable signal for whether a question is answerable, and whether its stated confidence or abstention behavior reflects that signal. On SQuAD 2.0 (1,200 balanced questions, passage-disjoint 60/20/20 splits, test n=240), a logistic probe on the last prompt token reaches an area under the ROC curve (AUROC) of 0.906 (95\% confidence interval, CI, 0.867--0.948) at layer 18, chosen on validation data. Verbalized confidence reaches 0.621, token-level and sampling signals 0.665--0.688, question length 0.569, and probes trained on shuffled labels 0.492. The behavioral counterpart is weak: the model abstains on 5\% of unanswerable test items, and an explicit UNANSWERABLE option raises this to 15\% with precision 1.0 (18 of 18). On 46.7\% of all test items the probe says unanswerable while the model commits with confidence at least 0.8, and those items are wrong 82.1\% of the time, against 52.5\% overall. SelfAware gives a probe AUROC of 0.993, but a source-only feature reaches 1.000, so we report it as a confound; transfer between the two datasets is weak (0.58 and 0.67). We claim a linear signal that predicts answerability within SQuAD under length and shuffle controls, from one model, one run and one prompt. We do not claim that the model knows it does not know.
 \end{abstract}
 
 %====================================================================
@@ -38,11 +39,11 @@ A model that answers every question in the same confident tone leaves its reader
 
 We use two benchmarks with different meanings of ``unanswerable''. SQuAD 2.0 contains questions whose answer is absent from a given passage, written by crowdworkers to resemble answerable ones \citep{rajpurkar2018squad2}. SelfAware contains questions that cannot be answered at all, for example because experts disagree, mixed with answerable questions drawn from other datasets \citep{yin2023selfaware}. We planned to treat both as probe targets. An audit changed the plan: every unanswerable SelfAware question carries the source label \code{SelfAware}, so a classifier that sees only the source scores AUROC 1.000, and the probe's 0.993 on that set says little about answerability. We therefore report SQuAD 2.0 as the primary result and SelfAware as a documented confound.
 
-Earlier work has already found answerability information in the hidden states of language models \citep{slobodkin2023curious,lavi2026directions,wagner2026twoaxes}, so we do not present the existence of such a signal as new. Our contribution is a controlled, fully specified measurement on a small open model, with every selection step made on validation data, and a careful account of what the behavioural comparisons do and do not show. Our main contributions are:
+Earlier work has already found answerability information in the hidden states of language models \citep{slobodkin2023curious,lavi2026directions,wagner2026twoaxes}, so we do not present the existence of such a signal as new. Our contribution is a controlled, fully specified measurement on a small open model, with every selection step made on validation data, and a careful account of what the behavioral comparisons do and do not show. Our main contributions are:
 \begin{enumerate}
 \item A layer-wise probe study on SQuAD 2.0 (test n=240): a logistic probe reaches AUROC 0.906 [0.867, 0.948] at a validation-chosen layer, well above verbal confidence (0.621), token log-probability (0.667), token entropy (0.688), a question-length baseline (0.569), and a shuffled-label null (mean 0.492, maximum 0.568).
 \item An audit of source confounds: SelfAware and pooled probe scores (0.993, 0.959) are not evidence of answerability coding, since source alone gives 1.000 on SelfAware and a question-only bag-of-words classifier gives 0.923; transfer between SQuAD and SelfAware is weak (0.580 and 0.671 at the source's own best layer).
-\item Behavioural gap measures with explicit definitions: a recognition--action gap of 0.296, a gap rate of 46.7\% of all test items (error rate 0.821 against 0.525 overall), and an explicit abstain option that flags 15\% of unanswerable items, all correctly. We state why each of these is partly a consequence of prompt design and of near-saturated verbal confidence.
+\item Behavioral gap measures with explicit definitions: a recognition--action gap of 0.296, a gap rate of 46.7\% of all test items (error rate 0.821 against 0.525 overall), and an explicit abstain option that flags 15\% of unanswerable items, all correctly. We state why each of these is partly a consequence of prompt design and of near-saturated verbal confidence.
 \end{enumerate}
 
 %====================================================================
@@ -58,7 +59,7 @@ Models can be asked to judge their own answers \citep{kadavath2022know}, to stat
 Linear probes on hidden states can predict whether a statement is true \citep{azaria2023internal,burns2023ccs,marks2024geometry}, and control tasks help separate what a probe reads from what it can learn by itself \citep{hewitt2019control,belinkov2022probing}. We use a logistic probe and the difference-of-means (mass-mean) probe of \citet{marks2024geometry} as a robustness check, and we follow the control-task spirit of \citet{hewitt2019control} with shuffled-label and surface-feature baselines.
 
 \paragraph{Answerability in hidden states.}
-Slobodkin et al.\ report that models appear to encode whether a query is answerable even when they hallucinate an answer \citep{slobodkin2023curious}. Lavi et al.\ find a linear unanswerability direction in extractive QA, test its transfer to SelfAware, and show that adding or ablating it changes abstention \citep{lavi2026directions}. Wagner separates answer correctness from question answerability and finds that a hidden-state probe tracks the second while answer confidence tracks the first \citep{wagner2026twoaxes}. Two further papers study mechanism: Nguyen et al.\ localise a commit--abstain circuit across ten models \citep{nguyen2026cac}, and Ferrando et al.\ find entity-recognition directions that causally affect refusal \citep{ferrando2025entity}. Relative to this work we study one small model and make no causal intervention, but we add a SelfAware source-confound audit, validation-only selection throughout, and explicit definitions of the gap measures. We do not claim that the signal is new or causal.
+Slobodkin et al.\ report that models appear to encode whether a query is answerable even when they hallucinate an answer \citep{slobodkin2023curious}. Lavi et al.\ find a linear unanswerability direction in extractive QA, test its transfer to SelfAware, and show that adding or ablating it changes abstention \citep{lavi2026directions}. Wagner separates answer correctness from question answerability and finds that a hidden-state probe tracks the second while answer confidence tracks the first \citep{wagner2026twoaxes}. Two further papers study mechanism: Nguyen et al.\ localize a commit--abstain circuit across ten models \citep{nguyen2026cac}, and Ferrando et al.\ find entity-recognition directions that causally affect refusal \citep{ferrando2025entity}. Relative to this work we study one small model and make no causal intervention, but we add a SelfAware source-confound audit, validation-only selection throughout, and explicit definitions of the gap measures. We do not claim that the signal is new or causal.
 
 %====================================================================
 \section{Methods}
@@ -66,26 +67,26 @@ Slobodkin et al.\ report that models appear to encode whether a query is answera
 \subsection{Model, prompts and generation}
 We run \code{microsoft/Phi-3.5-mini-instruct} (3.8B parameters, 32 transformer layers, hidden size 3072) in 8-bit quantization on a single GPU with 8~GB of memory, batch size one, because the bf16 weights do not fit. Quantization changes hidden states slightly relative to bf16, and we did not measure the effect. Answers are greedy with at most 32 new tokens; prompts are truncated from the left to 1,024 tokens (we did not log how many prompts were affected). The system message is ``You are a careful assistant. Answer concisely.'' For SQuAD the user message asks the model to answer using the passage with a few words, followed by the passage and question; for SelfAware it contains the question only. Appendix~\ref{app:prompts} gives the exact text.
 
-We make three model calls per item. The plain prompt, which offers no abstention option, yields the answer, its token log-probabilities and entropies, and the hidden states we probe. A second turn appended to the same conversation asks ``How confident are you that your answer is correct?'' on a 0--100 scale, and we parse the first number and divide by 100. A third call repeats the plain prompt with one added sentence, ``If the question cannot be answered, reply exactly UNANSWERABLE.'', which we call the explicit abstain option. For a hash-selected 25\% of items (807 of 3,200, including 51 of the 240 SQuAD test items) we also draw five samples at temperature 0.7, and the consistency signal is the share of samples whose normalised string equals the normalised greedy answer.
+We make three model calls per item. The plain prompt, which offers no abstention option, yields the answer, its token log-probabilities and entropies, and the hidden states we probe. A second turn appended to the same conversation asks ``How confident are you that your answer is correct?'' on a 0--100 scale, and we parse the first number and divide by 100. A third call repeats the plain prompt with one added sentence, ``If the question cannot be answered, reply exactly UNANSWERABLE.'', which we call the explicit abstain option. For a hash-selected 25\% of items (807 of 3,200, including 51 of the 240 SQuAD test items) we also draw five samples at temperature 0.7, and the consistency signal is the share of samples whose normalized string equals the normalized greedy answer.
 
 \subsection{Data and splits}
 SQuAD 2.0 uses the official development set (11,873 questions, 5,945 unanswerable). We take 600 answerable and 600 unanswerable questions in SHA-256 hash order and split by passage, stratified by class, into 720/240/240 train/validation/test items, so no passage appears in two splits. SelfAware (file with 2,338 answerable and 1,031 unanswerable questions) is subsampled to 1,000 per class and split by question into 1,200/400/400. The pooled set has 3,200 items (1,920/640/640). SQuAD test has 120 answerable and 120 unanswerable items. Seeds, subsampling and splits are deterministic (seed 13); the single run reported here is \code{20261114T041458Z-full--apart}.
 
 \subsection{Probes}
-For each of the 33 residual-stream positions (embedding output plus 32 layers) we take the hidden state at the final token of the chat-formatted plain prompt, the position from which the first answer token is generated. Features are standardised with training-set mean and standard deviation. The primary probe is an L2-regularised logistic regression (scikit-learn defaults, $C=1$, up to 1,000 iterations) with label answerable $=1$, trained on the training split only. We also fit a mass-mean probe (difference of class means with a midpoint bias) as a robustness check. The reported layer is the one with the highest validation AUROC. The probe score is the logit, and ``the probe says unanswerable'' means a score below the threshold that maximises Youden's J (true-positive rate minus false-positive rate) on the validation split.
+For each of the 33 residual-stream positions (embedding output plus 32 layers) we take the hidden state at the final token of the chat-formatted plain prompt, the position from which the first answer token is generated. Features are standardized with training-set mean and standard deviation. The primary probe is an L2-regularized logistic regression (scikit-learn defaults, $C=1$, up to 1,000 iterations) with label answerable $=1$, trained on the training split only. We also fit a mass-mean probe (difference of class means with a midpoint bias) as a robustness check. The reported layer is the one with the highest validation AUROC. The probe score is the logit, and ``the probe says unanswerable'' means a score below the threshold that maximizes Youden's J (true-positive rate minus false-positive rate) on the validation split.
 
 \subsection{Baselines and controls}
 We score four expressed signals for answerability with the same AUROC: verbalized confidence, mean token log-probability of the answer, negative mean token entropy, and consistency. The explicit abstain option enters as one hard decision. Three controls guard the probe against artifacts. In the shuffled-label control we permute the training labels and repeat the whole layer-wise protocol, including layer selection on validation, 20 times. The length baseline is a logistic regression on question word count, question characters or prompt characters. A post hoc lexical check (Appendix~\ref{app:lexical}) fits TF-IDF and question--passage word-overlap features on the same splits, and Appendix~\ref{app:posthoc} lists which numbers come from the run's analysis files and which we computed afterwards.
 
 \subsection{Scoring and metrics}\label{sec:metrics}
-SQuAD answers count as correct on exact match or token-F1 $\geq 0.5$ against any gold answer; on an unanswerable item an answer is correct only if it abstains. SelfAware answers are scored by normalised string containment, which misses paraphrases. Abstention is detected by a rule list (for example ``UNANSWERABLE'', ``cannot be answered'', ``I don't know''); no model or human judge audited it, and a reply such as a confident but unsupported negation is counted as an answer.
+SQuAD answers count as correct on exact match or token-F1 $\geq 0.5$ against any gold answer; on an unanswerable item an answer is correct only if it abstains. SelfAware answers are scored by normalized string containment, which misses paraphrases. Abstention is detected by a rule list (for example ``UNANSWERABLE'', ``cannot be answered'', ``I don't know''); no model or human judge audited it, and a reply such as a confident but unsupported negation is counted as an answer.
 
-All AUROCs are rank-based with average ranks for ties. Intervals are 95\% percentile bootstrap intervals over test items (300 resamples, seed 13), which resample items independently and so ignore clustering by passage. We call the \emph{gap rate} the share of all test items for which (i) the probe says unanswerable, (ii) the model did not abstain under the plain prompt, and (iii) verbalized confidence is at least 0.8; the \emph{error rate in the gap} is the share of those items that the model answered incorrectly, counting any answer to an unanswerable item as incorrect. The \emph{recognition} score is the balanced accuracy of the probe at its validation threshold. The \emph{action} score is the balanced accuracy of the model's own behaviour, the mean of the share of answerable items it answers and the share of unanswerable items it abstains on, and the \emph{recognition--action gap} is recognition minus action. Abstention precision and recall are computed for the unanswerable class.
+All AUROCs are rank-based with average ranks for ties. Intervals are 95\% percentile bootstrap intervals over test items (300 resamples, seed 13), which resample items independently and so ignore clustering by passage. We call the \emph{gap rate} the share of all test items for which (i) the probe says unanswerable, (ii) the model did not abstain under the plain prompt, and (iii) verbalized confidence is at least 0.8; the \emph{error rate in the gap} is the share of those items that the model answered incorrectly, counting any answer to an unanswerable item as incorrect. The \emph{recognition} score is the balanced accuracy of the probe at its validation threshold. The \emph{action} score is the balanced accuracy of the model's own behavior, the mean of the share of answerable items it answers and the share of unanswerable items it abstains on, and the \emph{recognition--action gap} is recognition minus action. Abstention precision and recall are computed for the unanswerable class.
 
 \subsection{Selection protocol}
 Table~\ref{tab:protocol} lists what was chosen on which split. The only quantities selected on test data are the ``maximum over layers'' transfer figures, which we label as optimistic and do not use as headline results. We ran one seed on one split, so no variance across seeds or splits is available.
 
-\begin{table}[t]
+\begin{table}[H]
 \centering\small
 \caption{What was chosen on which split.}
 \label{tab:protocol}
@@ -95,7 +96,7 @@ Choice & Made on & Reported on \\
 \midrule
 Probe layer (L18 for SQuAD) & validation AUROC & test \\
 Probe and verbal-confidence thresholds & validation Youden's J & test \\
-Probe regularisation ($C=1$), confidence cut (0.8) & fixed in the config before the run & test \\
+Probe regularization ($C=1$), confidence cut (0.8) & fixed in the config before the run & test \\
 Transfer layer, ``reported'' column & source dataset's validation & target test \\
 Transfer layer, ``maximum over layers'' & target test (optimistic) & target test \\
 Splits, subsampling, bootstrap and shuffle seeds & fixed (seed 13) & -- \\
@@ -127,11 +128,11 @@ Probes trained on shuffled labels reach a mean test AUROC of 0.492 (SD 0.039, ra
 \end{figure}
 
 \paragraph{Expressed signals track answer correctness better than answerability.}
-Verbalized confidence scores 0.621 [0.558, 0.681], mean token log-probability 0.667 [0.593, 0.731], negative entropy 0.688 [0.614, 0.751], and sampling consistency 0.665 [0.531, 0.787] on only 51 items (Figure~\ref{fig:signals}, Table~\ref{tab:signals}); the probe's interval lies above all of them, though we ran no paired test. The ordering reverses for answer correctness among answerable items: AUROC is 0.799 for verbal confidence, 0.869 for log-probability and 0.894 for entropy, against 0.660 for the probe, with only 12 incorrectly answered items among the 120. This pattern matches the two-axes account of \citet{wagner2026twoaxes}: expressed confidence follows whether an answer is right, while the probe follows the label it was trained on. Verbalized confidence is also saturated. It averages 0.926 on the test split, where 47.5\% of items receive appropriate behaviour (a correct answer, or an abstention on an unanswerable item), giving an expected calibration error of 0.484 with ten equal-width bins. The distribution is bimodal, with 227 items near 0.98 (appropriate 0.485) and 13 items near 0 (appropriate 0.308).
+Verbalized confidence scores 0.621 [0.558, 0.681], mean token log-probability 0.667 [0.593, 0.731], negative entropy 0.688 [0.614, 0.751], and sampling consistency 0.665 [0.531, 0.787] on only 51 items (Figure~\ref{fig:signals}, Table~\ref{tab:signals}); the probe's interval lies above all of them, though we ran no paired test. The ordering reverses for answer correctness among answerable items: AUROC is 0.799 for verbal confidence, 0.869 for log-probability and 0.894 for entropy, against 0.660 for the probe, with only 12 incorrectly answered items among the 120. This pattern matches the two-axes account of \citet{wagner2026twoaxes}: expressed confidence follows whether an answer is right, while the probe follows the label it was trained on. Verbalized confidence is also saturated. It averages 0.926 on the test split, where 47.5\% of items receive appropriate behavior (a correct answer, or an abstention on an unanswerable item), giving an expected calibration error of 0.484 with ten equal-width bins. The distribution is bimodal, with 227 items near 0.98 (appropriate 0.485) and 13 items near 0 (appropriate 0.308).
 
 \input{tables/tab_signals}
 
-\paragraph{The probe and the model's behaviour disagree on most unanswerable items.}
+\paragraph{The probe and the model's behavior disagree on most unanswerable items.}
 Under the plain prompt the model answers 90.0\% of answerable test questions correctly and abstains on 6 of 120 unanswerable ones (5.0\%), and on none of the answerable ones. The recognition score is 0.821 and the action score 0.525, a recognition--action gap of 0.296 (post hoc 95\% CI 0.240--0.344). The probe flags 127 of the 240 test items as unanswerable (102 truly so, 25 answerable). Of these, 112 (88.2\%) are items the model answered without abstaining at stated confidence of at least 0.8, which is 46.7\% of all test items (post hoc CI 41.0--52.9\%; Figure~\ref{fig:gap}). Of the 112, 87 are unanswerable and 25 answerable, and 92 are answered wrongly, an error rate of 0.821 (post hoc CI 0.747--0.888). The comparison rates are 0.525 over all 240 items and 0.266 over the 128 items outside the gap. Among the 120 unanswerable items, 87 (72.5\%) fall in the gap.
 
 \begin{figure}[t]
@@ -141,7 +142,7 @@ Under the plain prompt the model answers 90.0\% of answerable test questions cor
 \label{fig:gap}
 \end{figure}
 
-Two features of this measurement limit its reading. First, the confidence condition barely filters: 225 of the 240 items are answered at confidence at least 0.8 (error rate 0.520), so the gap rate is close to the share of items the probe flags and the model does not decline. Second, the plain prompt offers no way to decline, so a low action score is expected of any model that follows the instruction to answer; with the explicit option the action score is 0.575 and the recognition--action gap 0.246 (post hoc CI 0.189--0.292). The gap therefore measures that a supervised probe, trained on 720 labelled items, recovers a distinction the model does not act on under these two prompts. It does not show the model ``withholds'' anything.
+Two features of this measurement limit its reading. First, the confidence condition barely filters: 225 of the 240 items are answered at confidence at least 0.8 (error rate 0.520), so the gap rate is close to the share of items the probe flags and the model does not decline. Second, the plain prompt offers no way to decline, so a low action score is expected of any model that follows the instruction to answer; with the explicit option the action score is 0.575 and the recognition--action gap 0.246 (post hoc CI 0.189--0.292). The gap therefore measures that a supervised probe, trained on 720 labeled items, recovers a distinction the model does not act on under these two prompts. It does not show the model ``withholds'' anything.
 
 \begin{table}[t]
 \centering\small
@@ -159,7 +160,7 @@ Explicit abstain option & 0.150 & 1.000 & 0.261 & 0.925 & 0.000 \\
 \end{table}
 
 \paragraph{An explicit abstain option adds little recall.}
-With the sentence ``reply exactly UNANSWERABLE'' appended, the model abstains on 18 of 120 unanswerable test items and on none of the answerable ones, so precision is 1.0 (18 of 18) and recall 0.150 (post hoc CI 0.091--0.208); F1 is 0.261 and the balanced accuracy, which is also its AUROC, is 0.575 (Table~\ref{tab:flagging}; Appendix Figure~\ref{fig:ops}). The option is conservative rather than inaccurate: it never refuses an answerable question, but it leaves 102 of 120 unanswerable questions answered, and the share of items with appropriate behaviour moves only from 0.475 to 0.521. Table~\ref{tab:flagging} shows that the probe at its validation threshold has the highest F1 and verbal confidence the next; however, those two thresholds used validation labels and the option did not, so the comparison favours them. We tried one wording of the option, and a different prompt might raise recall. For the probe, flagging at the validation threshold keeps 47.1\% coverage and raises accuracy among answered items from 0.450 to 0.779, at the price of refusing 18.5\% of correct answers.
+With the sentence ``reply exactly UNANSWERABLE'' appended, the model abstains on 18 of 120 unanswerable test items and on none of the answerable ones, so precision is 1.0 (18 of 18) and recall 0.150 (post hoc CI 0.091--0.208); F1 is 0.261 and the balanced accuracy, which is also its AUROC, is 0.575 (Table~\ref{tab:flagging}; Appendix Figure~\ref{fig:ops}). The option is conservative rather than inaccurate: it never refuses an answerable question, but it leaves 102 of 120 unanswerable questions answered, and the share of items with appropriate behavior moves only from 0.475 to 0.521. Table~\ref{tab:flagging} shows that the probe at its validation threshold has the highest F1 and verbal confidence the next; however, those two thresholds used validation labels and the option did not, so the comparison favors them. We tried one wording of the option, and a different prompt might raise recall. For the probe, flagging at the validation threshold keeps 47.1\% coverage and raises accuracy among answered items from 0.450 to 0.779, at the price of refusing 18.5\% of correct answers.
 
 
 
@@ -175,9 +176,9 @@ A 400-item development run of the same pipeline (100 questions per class per dat
 \section{Discussion and Limitations}
 %====================================================================
 \paragraph{Discussion.}
-Within SQuAD 2.0, a linear readout from middle layers separates answerable from unanswerable questions far better than question length, lexical overlap, shuffled labels, or any signal the model expresses, and the pattern is stable across a logistic and a difference-of-means probe. A natural reading is that, by layers 15 to 19, the prompt representation encodes whether the passage supports an answer, since a model that must produce a span answer needs some such computation. That reading is a hypothesis; our experiments do not intervene on the representation. The behavioural side is consistent with the idea that this information is not routed into the model's refusal behaviour or confidence under the prompts we used, but we cannot separate a model limitation from an elicitation limitation, since our confidence question asks about the correctness of an answer, which has no meaning for an unanswerable item, and our abstain option is a single wording.
+Within SQuAD 2.0, a linear readout from middle layers separates answerable from unanswerable questions far better than question length, lexical overlap, shuffled labels, or any signal the model expresses, and the pattern is stable across a logistic and a difference-of-means probe. A natural reading is that, by layers 15 to 19, the prompt representation encodes whether the passage supports an answer, since a model that must produce a span answer needs some such computation. That reading is a hypothesis; our experiments do not intervene on the representation. The behavioral side is consistent with the idea that this information is not routed into the model's refusal behavior or confidence under the prompts we used, but we cannot separate a model limitation from an elicitation limitation, since our confidence question asks about the correctness of an answer, which has no meaning for an unanswerable item, and our abstain option is a single wording.
 
-For practice, the probe suggests a cheap gate: at the validation threshold it flags 85\% of unanswerable items at 80\% precision, but it also refuses 18.5\% of correct answers and requires white-box access and labelled training data. The SelfAware result is a methodological warning more than a finding. A probe can reach 0.993 AUROC on a benchmark where a one-feature source classifier reaches 1.000, so probe results on benchmarks assembled from heterogeneous sources need a source audit before they are read as evidence about what a model represents.
+For practice, the probe suggests a cheap gate: at the validation threshold it flags 85\% of unanswerable items at 80\% precision, but it also refuses 18.5\% of correct answers and requires white-box access and labeled training data. The SelfAware result is a methodological warning more than a finding. A probe can reach 0.993 AUROC on a benchmark where a one-feature source classifier reaches 1.000, so probe results on benchmarks assembled from heterogeneous sources need a source audit before they are read as evidence about what a model represents.
 
 \paragraph{What this does not show.}
 The probe is a supervised linear predictor of a dataset label, so a high AUROC shows linear decodability and not that the model knows it does not know or uses the signal. Nothing here is causal, because we made no interventions, and nothing shows that the signal is the same direction across layers or datasets. The comparison with expressed uncertainty also stops short of a general claim that the probe beats it: our verbal-confidence question concerns answer correctness, we elicited it once with one prompt, and we ran no prompted answerability question, P(True) or P(IK) baseline. Generality is limited to one 3.8B model in 8-bit, two English benchmarks, one prompt format and one seed. Finally, the recognition--action and gap numbers depend on the validation-chosen threshold, on the 0.8 confidence cut and on the plain prompt's lack of an abstain option.
@@ -202,7 +203,7 @@ On SQuAD 2.0, a layer-18 linear probe in Phi-3.5-mini-instruct predicts answerab
 \end{itemize}
 
 \section*{Author Contributions}
-Mackenzie O'Brien is the sole author and did all of the work: she designed the study, wrote the code, ran the experiments, analysed the results and wrote this report.
+Mackenzie O'Brien is the sole author and did all of the work: she designed the study, wrote the code, ran the experiments, analyzed the results and wrote this report.
 
 %====================================================================
 \begin{thebibliography}{99}\small
@@ -233,10 +234,10 @@ Mackenzie O'Brien is the sole author and did all of the work: she designed the s
 \appendix
 \section{Limitations and Dual-Use / Ethical Considerations}\label{app:ethics}
 \paragraph{What the results do and do not establish.}
-The results establish that, in one 3.8B model run in 8-bit on one prompt format, a linear readout of the last prompt token at layers 15 to 19 predicts SQuAD 2.0 answerability on held-out passages (AUROC 0.906, 95\% CI 0.867--0.948, n=240) far above a shuffled-label null (mean 0.492), a question-length baseline (0.569) and the signals the model expresses (0.621--0.688). They do not establish that the model represents ``not knowing'', that it uses the signal, that the signal is causal, that it transfers across datasets, or that it generalises to other models. Section~5 lists the full set of exclusions. The SelfAware and pooled numbers are explicitly confounds. The numbers are from one seed and one split.
+The results establish that, in one 3.8B model run in 8-bit on one prompt format, a linear readout of the last prompt token at layers 15 to 19 predicts SQuAD 2.0 answerability on held-out passages (AUROC 0.906, 95\% CI 0.867--0.948, n=240) far above a shuffled-label null (mean 0.492), a question-length baseline (0.569) and the signals the model expresses (0.621--0.688). They do not establish that the model represents ``not knowing'', that it uses the signal, that the signal is causal, that it transfers across datasets, or that it generalizes to other models. Section~5 lists the full set of exclusions. The SelfAware and pooled numbers are explicitly confounds. The numbers are from one seed and one split.
 
 \paragraph{Ways the findings or tools could be used to manipulate rather than inform.}
-We see four risks. First, a probe-based answerability score could be presented to users as a certificate that an answer is supported. At the validation threshold the probe flags only 85\% of unanswerable items, 25 of its 127 flags were answerable questions, and the threshold was chosen on labelled data from one benchmark, so such a certificate would mislead. Second, anyone with white-box access to a model could use a known answerability direction in the opposite way, suppressing abstention to make a model look more confident; \citet{lavi2026directions} report that adding or ablating such a direction changes abstention, and we did not test this ourselves. Third, the gap measures here depend on a confidence threshold and on a prompt that offers no abstention, so a vendor could report a small gap by changing the prompt or by instructing the model to state low confidence, without any change in how well it separates answerable from unanswerable questions. Fourth, a headline such as ``the model knows when it does not know'' would overstate what a supervised linear probe shows; we have avoided it for that reason.
+We see four risks. First, a probe-based answerability score could be presented to users as a certificate that an answer is supported. At the validation threshold the probe flags only 85\% of unanswerable items, 25 of its 127 flags were answerable questions, and the threshold was chosen on labeled data from one benchmark, so such a certificate would mislead. Second, anyone with white-box access to a model could use a known answerability direction in the opposite way, suppressing abstention to make a model look more confident; \citet{lavi2026directions} report that adding or ablating such a direction changes abstention, and we did not test this ourselves. Third, the gap measures here depend on a confidence threshold and on a prompt that offers no abstention, so a vendor could report a small gap by changing the prompt or by instructing the model to state low confidence, without any change in how well it separates answerable from unanswerable questions. Fourth, a headline such as ``the model knows when it does not know'' would overstate what a supervised linear probe shows; we have avoided it for that reason.
 
 \paragraph{Personal data and data handling.}
 We use only public datasets, SQuAD 2.0 (Wikipedia-derived passages and crowdsourced questions) and SelfAware, both released under CC BY-SA 4.0, and we attribute them. No personal data were collected, no human subjects took part, and no paid model APIs or external judges were used (the run's judge backend was disabled). Model outputs are short answers to public questions. We see no information hazard in the results. The compute used was about 73 minutes on one consumer GPU with 8~GB of memory for the full run.
@@ -248,7 +249,7 @@ We use only public datasets, SQuAD 2.0 (Wikipedia-derived passages and crowdsour
 \paragraph{Explicit abstain option.} \textit{tail} is empty for the plain prompt and `` If the question cannot be answered, reply exactly UNANSWERABLE.'' for the abstain-option prompt. Hidden states for probing always come from the plain prompt.
 \paragraph{Confidence turn.} The plain prompt, then an assistant turn containing the model's answer, then the user message ``How confident are you that your answer is correct? Reply with only a number from 0 (certain it is wrong) to 100 (certain it is right).'' Up to 8 new tokens are generated and the first number is parsed (values above 100 are treated as missing; none were missing in the SQuAD test split). Typical replies include ``100 (I am certain'' and ``95'', and some include a short explanation after the number.
 \paragraph{Abstention rule.} A reply counts as an abstention if it contains ``UNANSWERABLE'' (case-insensitive) or matches any of the patterns: ``unanswerable'', ``cannot be answered'', ``can't be answered'', ``no answer'', ``not enough/sufficient information'', ``not mentioned/stated/provided/specified'', ``I do not/don't know'', ``I'm/am not sure'', ``unknown'', ``it is not possible to answer/determine/know'', ``there is no definitive/single/way'', ``no one knows'', and ``impossible to answer/say/know/determine''.
-\paragraph{Answer scoring.} SQuAD: exact match or best token-F1 $\geq 0.5$ over gold answers after lower-casing, removing punctuation and articles. SelfAware: a gold answer contained in the prediction, or the reverse, after the same normalisation (length at least 3 characters). On answerable items, an abstention is counted as wrong.
+\paragraph{Answer scoring.} SQuAD: exact match or best token-F1 $\geq 0.5$ over gold answers after lower-casing, removing punctuation and articles. SelfAware: a gold answer contained in the prediction, or the reverse, after the same normalization (length at least 3 characters). On answerable items, an abstention is counted as wrong.
 
 \section{Provenance of the reported numbers}\label{app:posthoc}
 \begingroup\sloppy
@@ -258,7 +259,7 @@ Code added to the repository after the run produced the abstain-option analysis 
 
 \endgroup
 \section{Lexical and length baselines (post hoc)}\label{app:lexical}
-We fitted three additional logistic regressions on the stored SQuAD splits (train 720, validation 240, test 240). The TF-IDF model uses unigrams and bigrams of the question text (minimum document frequency 2). The overlap model uses three standardised features: the fraction of question content words that occur in the passage, the maximum such fraction over single passage sentences, and the number of question content words. The third model uses both. Test AUROCs are 0.598 (TF-IDF), 0.600 (overlap) and 0.635 (both); validation AUROCs are 0.504, 0.577 and 0.561. On SelfAware, TF-IDF of the question gives validation 0.932 and test 0.923. These are single fits with no intervals. They show that simple lexical features carry some answerability information on SQuAD (up to 0.635), well short of the probe's 0.906, and a large amount on SelfAware, in line with the source confound.
+We fitted three additional logistic regressions on the stored SQuAD splits (train 720, validation 240, test 240). The TF-IDF model uses unigrams and bigrams of the question text (minimum document frequency 2). The overlap model uses three standardized features: the fraction of question content words that occur in the passage, the maximum such fraction over single passage sentences, and the number of question content words. The third model uses both. Test AUROCs are 0.598 (TF-IDF), 0.600 (overlap) and 0.635 (both); validation AUROCs are 0.504, 0.577 and 0.561. On SelfAware, TF-IDF of the question gives validation 0.932 and test 0.923. These are single fits with no intervals. They show that simple lexical features carry some answerability information on SQuAD (up to 0.635), well short of the probe's 0.906, and a large amount on SelfAware, in line with the source confound.
 
 \section{Additional tables and figures}
 \input{tables/tab_datasets}
@@ -268,42 +269,43 @@ We fitted three additional logistic regressions on the stored SQuAD splits (trai
 \input{tables/tab_posthoc}
 \input{tables/tab_layers}
 
-\begin{figure}[t]
+\begin{figure}[H]
 \centering
 \includegraphics[width=0.85\linewidth]{figures/fig_layers_all.pdf}
 \caption{Test AUROC by layer for the logistic probe on each dataset. Dashed curves are source-confounded (SelfAware, pooled). Dots mark the layer chosen on validation.}
 \label{fig:layersall}
 \end{figure}
 
-\begin{figure}[t]
+\begin{figure}[H]
 \centering
 \includegraphics[width=0.85\linewidth]{figures/fig_transfer.pdf}
 \caption{Cross-dataset transfer by layer. Circles mark the source dataset's validation-selected layer, which is the reported figure; stars mark the maximum over layers on the target test split, which is chosen on the target test set and is optimistic.}
 \label{fig:transfer}
 \end{figure}
 
-\begin{figure}[t]
+\begin{figure}[H]
 \centering
 \includegraphics[width=0.95\linewidth]{figures/fig_reliability_coverage.pdf}
 \caption{(a) Reliability of verbalized confidence and of the exponentiated mean token log-probability on the SQuAD test split; ``fraction appropriate'' counts a correct answer or an abstention on an unanswerable item. (b) Accuracy among answered items as coverage varies, for each signal's own threshold sweep (not tuned). The consistency curve uses the 51 items that have a score. Items answered on an unanswerable question count as wrong, so the ungated accuracy is 0.45.}
 \label{fig:rel}
 \end{figure}
 
-\begin{figure}[t]
+\begin{figure}[H]
 \centering
 \includegraphics[width=0.52\linewidth]{figures/fig_operating_points.pdf}
 \caption{Precision and recall for flagging unanswerable SQuAD test items: explicit abstain option, probe at its validation Youden threshold, and verbal confidence at its validation threshold (n=240).}
 \label{fig:ops}
 \end{figure}
 
-\begin{figure}[t]
+\begin{figure}[H]
 \centering
 \includegraphics[width=0.5\linewidth]{figures/fig_shuffle.pdf}
 \caption{Distribution of test AUROC over 20 shuffled-label runs on SQuAD 2.0, with the real probe's value marked.}
 \label{fig:shuffle}
 \end{figure}
 
+\FloatBarrier
 \section{Reproducibility details}
-The run used \code{torch} 2.11.0 (CUDA 12.8 build), \code{transformers} 5.22.2, \code{bitsandbytes} 0.50.2, \code{numpy} 2.5.4 and \code{scikit-learn} 1.9.1, with seed 13. The full run took 4,403 seconds for 3,200 items. Hidden states were stored in half precision and analysed in double precision. Configuration: 600 questions per class from SQuAD 2.0 dev, 1,000 per class from SelfAware, 60/20/20 splits, probe $C=1$ with at most 1,000 iterations, ten ECE bins, confidence cut 0.8, 300 bootstrap resamples, 20 label shuffles, consistency with five samples at temperature 0.7 on a hash-selected 25\% subset. The scripts that regenerate every figure and table in this report from the run's JSON files are in the \code{writeup/scripts} folder of the repository.
+The run used \code{torch} 2.11.0 (CUDA 12.8 build), \code{transformers} 5.22.2, \code{bitsandbytes} 0.50.2, \code{numpy} 2.5.4 and \code{scikit-learn} 1.9.1, with seed 13. The full run took 4,403 seconds for 3,200 items. Hidden states were stored in half precision and analyzed in double precision. Configuration: 600 questions per class from SQuAD 2.0 dev, 1,000 per class from SelfAware, 60/20/20 splits, probe $C=1$ with at most 1,000 iterations, ten ECE bins, confidence cut 0.8, 300 bootstrap resamples, 20 label shuffles, consistency with five samples at temperature 0.7 on a hash-selected 25\% subset. The scripts that regenerate every figure and table in this report from the run's JSON files are in the \code{writeup/scripts} folder of the repository.
 
 \end{document}
