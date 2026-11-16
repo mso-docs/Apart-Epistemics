@@ -9,6 +9,6 @@
    video section stay hidden, so the page never shows a broken embed.
    ============================================================ */
 window.SITE_CONFIG = {
-  VIDEO_URL: "",
+  VIDEO_URL: "https://youtu.be/og3AKyBByQw",
   VIDEO_TITLE: "A Linear Answerability Signal That the Model Does Not Act On: project walkthrough"
 };
