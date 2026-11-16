@@ -6,7 +6,7 @@
 
 Writes data/raw/SOURCES.json with URL, size, sha256 and license for each file.
 Licenses: SQuAD 2.0 = CC BY-SA 4.0; SelfAware data = CC BY-SA 4.0 (repo code Apache 2.0). Attribute both in the report.
-TriviaQA is optional and NOT downloaded here (license caveat is unresolved; see docs/PROPOSAL.md).
+TriviaQA is optional and NOT downloaded here (license caveat is unresolved; see PROPOSAL.md).
 """
 import argparse
 import hashlib

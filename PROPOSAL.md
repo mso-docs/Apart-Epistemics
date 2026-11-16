@@ -1,6 +1,8 @@
-# Apart sprint plan: When does a model know it should abstain?
+# Sprint proposal: When does a model know it should abstain?
 
-> One-page project plan for the Apart Research AI x Epistemics sprint (Fri Nov 13–Sun Nov 15, 2026; submit by Mon Nov 16, 6:59 AM ET). Track 1: Model Epistemics & Decision-Making Evals. Standalone Apart project — not connected to other research workstreams.
+> **Note:** this is the original proposal, written before the experiments. The final write-up, [A Linear Answerability Signal That the Model Does Not Act On: Probes, Verbal Confidence and an Abstain Option in Phi-3.5-mini](writeup/main.pdf), reports what was actually done and found, including the changes of plan (for example, SelfAware is reported as a source confound).
+
+> One-page project plan for the AI x Epistemics Research Sprint (Fri Nov 13–Sun Nov 15, 2026; submit by Mon Nov 16, 6:59 AM ET). Track 1: Model Epistemics & Decision-Making Evals. Standalone Apart project — not connected to other research workstreams.
 
 - **Track 1**: Model epistemics & decision-making evals (Same 1–5 rubric across tracks)
 - **Mon 6:59 AM ET**: Submission cutoff (Sun Nov 15, 11:59 PM AoE)

@@ -1,10 +1,12 @@
-# When does a model know it should abstain?
+# A Linear Answerability Signal That the Model Does Not Act On: Probes, Verbal Confidence and an Abstain Option in Phi-3.5-mini
 
-Apart Research **AI x Epistemics sprint** (Fri Nov 13 – Sun Nov 15, 2026; submission cutoff Sun 11:59 PM AoE = Mon Nov 16, 6:59 AM ET), Track 1: model epistemics & decision-making evals.
+**Landing page for judges: [mso-docs.github.io/Apart-Epistemics](https://mso-docs.github.io/Apart-Epistemics/)** (paper, slides, dataset, code and a video slot, all in one place).
+
+**AI x Epistemics Research Sprint** (Fri Nov 13 – Sun Nov 15, 2026; submission cutoff Sun 11:59 PM AoE = Mon Nov 16, 6:59 AM ET), Track 1: model epistemics & decision-making evals.
 
 All code, experiments and writing in this repository were produced during the sprint (Nov 13–15, 2026); there is no pre-sprint code.
 
-Question: does a small open-weights model (Phi-3.5-mini-instruct) internally encode that a question is **unanswerable** even when it answers confidently? We fit layer-wise linear probes on last-prompt-token hidden states and compare them with verbalized confidence, token log-probability / entropy, and sampling consistency, on SQuAD 2.0 (no evidence in the passage) and SelfAware (inherently unanswerable). Full plan, related work, risks and schedule: **[docs/PROPOSAL.md](docs/PROPOSAL.md)**.
+Question: does a small open-weights model (Phi-3.5-mini-instruct) internally encode that a question is **unanswerable** even when it answers confidently? We fit layer-wise linear probes on last-prompt-token hidden states and compare them with verbalized confidence, token log-probability / entropy, and sampling consistency, on SQuAD 2.0 (no evidence in the passage) and SelfAware (inherently unanswerable). Full plan, related work, risks and schedule: **[PROPOSAL.md](PROPOSAL.md)**.
 
 > **Status:** The full run `20261114T041458Z-full--apart` is complete (3,200/3,200 items, Phi-3.5-mini 8-bit). The write-up is in `writeup/main.tex` / `writeup/main.pdf`. **The primary probe result is SQuAD 2.0** (contextual unanswerability): probe AUROC 0.906 at layer 18. SelfAware and pooled probe AUROCs are reported with a source/label confound warning (see Data notes) and are not headline numbers.
 > **Version control:** weekday commits and pushes are blocked 8 AM–6 PM ET by a global guard. Do not bypass it.
@@ -17,7 +19,9 @@ configs/                default.yaml (full), dev.yaml (400-item smoke slice), fu
 scripts/                download_data.py, run_pipeline.py (time-guarded), run_remote.sh, sync_*.sh, ingest_evalboard.py, setup_evalboard.py,
                         evalboard_service.sh, make_demo_project.py, build_release.sh, prepublish_scan.sh, pii_scan.py
 tests/                  unit tests on synthetic data (python -m unittest)
-docs/PROPOSAL.md       the sprint plan (Markdown copy of the planning page)
+PROPOSAL.md            the sprint proposal and plan (Markdown)
+docs/                  GitHub Pages landing site (index.html, assets, PDF downloads, site-config.js)
+presentation/          Beamer slide deck (main.tex -> main.pdf, main-notes.pdf)
 data/raw/               SQuAD 2.0 + SelfAware (git-ignored; re-create with scripts/download_data.py)
 models/ outputs/ logs/  weights, run outputs, logs (git-ignored)
 ```
@@ -85,4 +89,4 @@ The run id is `<UTC timestamp>-<config>--apart`; the remote log is `logs/<run id
 `scripts/build_release.sh` stages a clean copy in `release/` and runs `scripts/prepublish_scan.sh` (gitleaks with `.gitleaks.toml` + a PII / private-link scan). Public release only after both are clean and you confirm.
 
 ## Limitations and ethics
-See the appendix section in [docs/PROPOSAL.md](docs/PROPOSAL.md). In short: one small model, two English public benchmarks, a last-token linear probe that correlates with answerability but does not show the model "knows" anything; automatic scoring misses paraphrases; abstention metrics depend on the operating point. SelfAware probe AUROC is confounded by dataset source (see above) and is not a primary result. Only public datasets are used; no personal data.
+See the appendix section in [PROPOSAL.md](PROPOSAL.md). In short: one small model, two English public benchmarks, a last-token linear probe that correlates with answerability but does not show the model "knows" anything; automatic scoring misses paraphrases; abstention metrics depend on the operating point. SelfAware probe AUROC is confounded by dataset source (see above) and is not a primary result. Only public datasets are used; no personal data.
