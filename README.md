@@ -1,6 +1,8 @@
 # A Linear Answerability Signal That the Model Does Not Act On: Probes, Verbal Confidence and an Abstain Option in Phi-3.5-mini
 
-**Landing page for judges: [mso-docs.github.io/Apart-Epistemics](https://mso-docs.github.io/Apart-Epistemics/)** (paper, slides, dataset, code and a video slot, all in one place).
+**Landing page for judges: [mso-docs.github.io/Apart-Epistemics](https://mso-docs.github.io/Apart-Epistemics/)** (paper, slides, dataset, code and video, all in one place).
+
+**Apart sprint submission:** [Apart project page](https://apartresearch.com/sprints/projects/a-linear-answerability-signal-that-the-model-does-not-act-on-feuho1zptz) · **Video:** [YouTube walkthrough](https://youtu.be/og3AKyBByQw)
 
 **AI x Epistemics Research Sprint** (Fri Nov 13 – Sun Nov 15, 2026; submission cutoff Sun 11:59 PM AoE = Mon Nov 16, 6:59 AM ET), Track 1: model epistemics & decision-making evals.
 
